@@ -1,19 +1,19 @@
 /* src/pages/LoginPage.css */
-
 .login-container {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #f0f2f5;
+    background-color: #1a1a1a; /* Dark background */
     font-family: Arial, sans-serif;
 }
 
 .login-form {
-    background: #fff;
+    background: #282828; /* Dark card */
+    color: #e0e0e0;
     padding: 2rem;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     width: 100%;
     max-width: 400px;
     text-align: center;
@@ -21,7 +21,7 @@
 
 .login-form h2 {
     margin-bottom: 1.5rem;
-    color: #333;
+    color: #ffffff; /* White heading */
 }
 
 .form-group {
@@ -33,15 +33,17 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
-    color: #555;
+    color: #b0b0b0; /* Light grey label */
 }
 
 .form-group input {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #ddd;
+    border: 1px solid #555;
     border-radius: 4px;
-    box-sizing: border-box; /* Important for padding to work correctly */
+    box-sizing: border-box;
+    background-color: #3a3a3a; /* Dark input */
+    color: #e0e0e0;
 }
 
 .submit-btn {
@@ -49,7 +51,7 @@
     padding: 0.75rem;
     border: none;
     border-radius: 4px;
-    background-color: #007bff;
+    background-color: #4CAF50; /* Green (matches new sidebar) */
     color: white;
     font-size: 1rem;
     font-weight: 600;
@@ -58,12 +60,12 @@
 }
 
 .submit-btn:hover {
-    background-color: #0056b3;
+    background-color: #45a049;
 }
 
 .toggle-form {
     margin-top: 1rem;
-    color: #007bff;
+    color: #4CAF50; /* Green link */
     cursor: pointer;
     font-size: 0.9rem;
 }
@@ -71,8 +73,6 @@
 .toggle-form:hover {
     text-decoration: underline;
 }
-
-/* --- NEW STYLES FOR GOOGLE BUTTON --- */
 
 .divider {
     display: flex;
@@ -86,7 +86,7 @@
 .divider::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #555;
 }
 
 .divider::before {
@@ -102,8 +102,8 @@
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 4px;
-    background-color: #fff;
-    color: #555;
+    background-color: #fff; /* Google button stays white */
+    color: #333;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;

@@ -1,55 +1,100 @@
 // src/pages/HomePage.js
-import React, { useState } from 'react'; // 1. Import useState
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import './HomePage.css';
+import './HomePage.css'; // This will contain all the new styles
 import Feed from '../components/Feed'; 
 import UploadForm from '../components/UploadForm'; 
-import Modal from '../components/Modal'; // 2. Import our new Modal
+import Modal from '../components/Modal';
 
 const HomePage = () => {
     const { user, logoutUser } = useAuth(); 
     const navigate = useNavigate();
-    const [isModalOpen, setIsModalOpen] = useState(false); // 3. State for the modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(''); // New state for search
 
     const handleLogout = async () => {
-        // ... (logout logic)
+        try {
+            await logoutUser();
+            navigate('/'); 
+        } catch (error) {
+            console.error('Failed to logout:', error);
+        }
     };
 
-    // 4. Function to close modal and refresh feed
     const handleUploadSuccess = () => {
         setIsModalOpen(false);
-        window.location.reload(); // Refresh the page to see new video
+        // We'll need to refresh the feed component directly later for search, 
+        // but for now, a full page reload is fine.
+        window.location.reload(); 
     };
 
     return (
-        <div className="home-container">
-            <header className="home-header">
-                <h1>OfgConnects</h1>
-                <div className="user-info">
-                    <span>Welcome, {user ? user.name : 'Guest'}!</span>
-                    
-                    {/* 5. ADD THE UPLOAD BUTTON */}
-                    <button 
-                        onClick={() => setIsModalOpen(true)} 
-                        className="upload-btn"
-                    >
-                        Upload
-                    </button>
-                    
-                    <button onClick={handleLogout} className="logout-btn">
-                        Logout
-                    </button>
+        <div className="app-layout"> {/* New overall layout container */}
+            <aside className="sidebar"> {/* New sidebar */}
+                <div className="logo-section">
+                    <img src="/ofg-logo.png" alt="OfgConnects Logo" className="app-logo" /> {/* You'll need to add a logo image here */}
+                    <h1>OfgConnects</h1>
                 </div>
-            </header>
+                <nav className="main-nav">
+                    {/* These will eventually be real routes */}
+                    <button className="nav-item active" onClick={() => navigate('/home')}>
+                        <span className="icon">🏠</span> Home
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/shorts')}>
+                        <span className="icon">🎬</span> Shorts
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/following')}>
+                        <span className="icon">🤝</span> Following
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/myspace')}>
+                        <span className="icon">👤</span> Myspace
+                    </button>
+                    <button className="nav-item" onClick={() => console.log('Offline clicked')}>
+                        <span className="icon">🔌</span> Offline
+                    </button>
+                    <button className="nav-item" onClick={() => console.log('Kids clicked')}>
+                        <span className="icon">🧒</span> Kids
+                    </button>
+                </nav>
+            </aside>
 
-            <main className="home-content">
-                {/* 6. The form is GONE from here */}
-                {/* The <hr /> is GONE from here */}
-                <Feed />
-            </main>
+            <div className="main-content-area"> {/* Main content area for header and feed */}
+                <header className="top-header"> {/* New top header for search and user */}
+                    <div className="search-bar-container">
+                        <input 
+                            type="text" 
+                            placeholder="Search" 
+                            className="search-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <button className="search-icon">🔍</button>
+                    </div>
+                    <div className="user-profile-section">
+                        {/* You can add a profile image here later */}
+                        <span className="username">{user ? user.name : 'Guest'}</span>
+                        <button onClick={handleLogout} className="logout-btn">
+                            Logout
+                        </button>
+                        <button 
+                            onClick={() => setIsModalOpen(true)} 
+                            className="upload-btn"
+                        >
+                            Upload
+                        </button>
+                        {/* A placeholder for the user avatar, matching your design */}
+                        <div className="user-avatar">
+                            <span className="avatar-icon">🧑</span>
+                        </div>
+                    </div>
+                </header>
 
-            {/* 7. ADD THE MODAL COMPONENT */}
+                <main className="feed-area"> {/* Where the Feed component will render */}
+                    <Feed searchTerm={searchTerm} /> {/* Pass searchTerm to Feed */}
+                </main>
+            </div>
+
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
                 <UploadForm onUploadSuccess={handleUploadSuccess} />
             </Modal>

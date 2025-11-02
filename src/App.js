@@ -3,14 +3,17 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
-import HomePage from './pages/HomePage'; 
+import HomePage from './pages/HomePage';
+import WatchPage from './pages/WatchPage';
+import MySpacePage from './pages/MySpacePage';
+import FollowingPage from './pages/FollowingPage';
+import ShortsPage from './pages/ShortsPage'; // 1. Import the new page
 
 // This is our simple Protected Route component
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth(); // 'user' is used here, so it's fine
+  const { user } = useAuth();
   
   if (!user) {
-    // If user is not logged in, redirect them to the login page
     return <Navigate to="/" />;
   }
   
@@ -18,9 +21,8 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  const { loading } = useAuth(); // <-- Removed 'user' from here
+  const { loading } = useAuth();
 
-  // Show a loading message while we check user status
   if (loading) {
     return <p>Loading application...</p>
   }
@@ -40,6 +42,47 @@ function App() {
             </ProtectedRoute>
           } 
         />
+
+        {/* Protected Route: Watch Page */}
+        <Route 
+          path="/watch/:videoId" 
+          element={
+            <ProtectedRoute>
+              <WatchPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Protected Route: MySpace */}
+        <Route 
+          path="/myspace" 
+          element={
+            <ProtectedRoute>
+              <MySpacePage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Protected Route: Following */}
+        <Route 
+          path="/following" 
+          element={
+            <ProtectedRoute>
+              <FollowingPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* 2. Add the new Protected Route for Shorts */}
+        <Route 
+          path="/shorts" 
+          element={
+            <ProtectedRoute>
+              <ShortsPage />
+            </ProtectedRoute>
+          } 
+        />
+
       </Routes>
     </Router>
   );

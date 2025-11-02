@@ -1,0 +1,65 @@
+/* src/pages/ShortsPage.css */
+.shorts-container {
+    max-width: 1400px;
+    margin: 1rem auto;
+    padding: 2rem;
+    font-family: Arial, sans-serif;
+    color: #e0e0e0;
+}
+
+.shorts-title {
+    font-size: 2rem;
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #444;
+    padding-bottom: 1rem;
+}
+
+.shorts-empty-message {
+    font-size: 1.1rem;
+    color: #b0b0b0;
+    text-align: center;
+    margin-top: 3rem;
+}
+
+.shorts-grid {
+    display: grid;
+    /* This creates a grid of vertical-ratio cards */
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.short-video-card {
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    overflow: hidden;
+    position: relative;
+    /* This forces the 9:16 aspect ratio */
+    aspect-ratio: 9 / 16;
+    cursor: pointer;
+}
+
+.short-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* This will fill the container */
+}
+
+.short-video-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+}
+
+.short-video-user {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}

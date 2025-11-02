@@ -1,5 +1,4 @@
 /* src/components/Feed.css */
-
 .feed-container {
     max-width: 800px;
     margin: 2rem auto;
@@ -14,17 +13,23 @@
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow: hidden;
+    text-align: left;
+    cursor: pointer; /* Keep this! It's for clicking */
+    transition: box-shadow 0.2s ease;
+}
+
+.video-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Keep this! */
 }
 
 .video-thumbnail {
     width: 100%;
-    height: 200px; /* Placeholder height */
-    background-color: #eee;
+    aspect-ratio: 16 / 9; /* Keep the 16:9 ratio */
+    background-color: #1a1a1a;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #888;
-    font-weight: 600;
+    overflow: hidden;
 }
 
 .video-thumbnail img {
@@ -47,3 +52,16 @@
     color: #666;
     margin: 0;
 }
+
+.video-thumbnail-placeholder {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-weight: 600;
+}
+
+/* All the old modal styles are gone */

@@ -1,5 +1,4 @@
 // src/appwriteConfig.js
-
 import { Client, Account, Databases, Storage } from 'appwrite';
 
 export const client = new Client();
@@ -16,5 +15,12 @@ export const storage = new Storage(client);
 export const DATABASE_ID = process.env.REACT_APP_DATABASE_ID;
 export const COLLECTION_ID_VIDEOS = process.env.REACT_APP_COLLECTION_ID_VIDEOS;
 export const BUCKET_ID_VIDEOS = process.env.REACT_APP_BUCKET_ID_VIDEOS;
-// --- ADD THIS NEW EXPORT ---
 export const BUCKET_ID_THUMBNAILS = process.env.REACT_APP_BUCKET_ID_THUMBNAILS;
+
+// This now correctly reads from your .env file
+export const COLLECTION_ID_COMMENTS = process.env.REACT_APP_COLLECTION_ID_COMMENTS; 
+export const COLLECTION_ID_SUBSCRIPTIONS = process.env.REACT_APP_COLLECTION_ID_SUBSCRIPTIONS; // ADD THIS LINE
+export const COLLECTION_ID_SHORTS = process.env.REACT_APP_COLLECTION_ID_SHORTS; // ADD THIS LINE
+// Export the Endpoint and Project ID
+export const ENDPOINT = process.env.REACT_APP_APPWRITE_ENDPOINT;
+export const PROJECT_ID = process.env.REACT_APP_APPWRITE_PROJECT_ID;
