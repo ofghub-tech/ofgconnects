@@ -1,0 +1,49 @@
+/* src/components/Feed.css */
+
+.feed-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.video-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.video-thumbnail {
+    width: 100%;
+    height: 200px; /* Placeholder height */
+    background-color: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-weight: 600;
+}
+
+.video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-info {
+    padding: 1rem 1.5rem;
+}
+
+.video-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.video-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
