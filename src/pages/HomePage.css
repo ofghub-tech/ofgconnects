@@ -1,269 +1,49 @@
 /* src/pages/HomePage.css */
 
-/* --- Overall App Layout --- */
-.app-layout {
-    display: flex;
-    min-height: 100vh; /* Make sure it takes full height */
-    background-color: #1a1a1a; /* Dark background for the app */
-    color: #e0e0e0; /* Light text for readability */
+.feed-area-wrapper {
+    padding: 1rem 0; 
+    width: 100%;
+    max-width: 1500px; 
+    margin: 0 auto;
 }
 
-/* --- Sidebar Styling --- */
-.sidebar {
-    width: 250px; /* Fixed width for the sidebar */
-    background-color: #282828; /* Slightly lighter dark for sidebar */
-    padding: 1.5rem 1rem;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
+/* src/pages/HomePage.css */
 
-.logo-section {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+/* --- Daily Verse Styling --- */
+.daily-verse-container {
+    background-color: #333; 
+    padding: 2rem 2.5rem;
     margin-bottom: 2rem;
-}
-
-.app-logo {
-    width: 40px; /* Size for your logo */
-    height: 40px;
-    object-fit: contain;
-}
-
-.logo-section h1 {
-    font-size: 1.5rem;
-    color: #e0e0e0;
-    margin: 0;
-}
-
-.main-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.nav-item {
-    background: none;
-    border: none;
-    color: #b0b0b0; /* Lighter grey for inactive items */
-    padding: 0.8rem 1rem;
-    font-size: 1.1rem;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.nav-item:hover {
-    background-color: #3a3a3a; /* Hover state */
-    color: #ffffff;
-}
-
-.nav-item.active {
-    background-color: #4CAF50; /* Green for active item */
-    color: #ffffff;
-    font-weight: bold;
-}
-
-.nav-item .icon {
-    font-size: 1.2rem; /* Size of the emoji icons */
-    width: 24px; /* Fixed width for consistent alignment */
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     text-align: center;
 }
 
-/* --- Main Content Area --- */
-.main-content-area {
-    flex-grow: 1; /* Takes up remaining space */
-    display: flex;
-    flex-direction: column;
+.verse-loading {
+    color: #b0b0b0;
+    font-size: 1.1rem;
 }
 
-/* --- Top Header (Search & User) --- */
-.top-header {
-    background-color: #1a1a1a; /* Same as app background */
-    padding: 1rem 2rem;
-    border-bottom: 1px solid #333;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    position: sticky; /* Make header sticky */
-    top: 0;
-    z-index: 1000;
+.verse-text {
+    /* --- NEW FONT STYLES --- */
+    font-family: 'Noto Sans Telugu', Arial, sans-serif; 
+    font-size: 1.65rem; /* Slightly larger size for impact */
+    line-height: 1.8; /* Increased line height for better spacing */
+    font-weight: 500; /* Medium weight for readability */
+    color: #ffffff;
+    margin: 0 0 1rem 0;
+    /* --- END NEW FONT STYLES --- */
 }
 
-.search-bar-container {
-    flex-grow: 1;
-    max-width: 600px; /* Limit search bar width */
-    display: flex;
-    background-color: #3a3a3a;
-    border-radius: 25px;
-    overflow: hidden;
-    height: 40px;
-}
-
-.search-input {
-    flex-grow: 1;
-    border: none;
-    padding: 0 1.25rem;
-    background: none;
-    color: #e0e0e0;
+.verse-reference {
+    display: block;
     font-size: 1rem;
-    outline: none; /* Remove blue outline on focus */
-}
-
-.search-input::placeholder {
-    color: #888;
-}
-
-.search-icon {
-    background: #4a4a4a;
-    border: none;
-    color: #e0e0e0;
-    padding: 0 1rem;
-    cursor: pointer;
-    font-size: 1.2rem;
-    transition: background-color 0.2s ease;
-}
-
-.search-icon:hover {
-    background-color: #5a5a5a;
-}
-
-.user-profile-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.username {
     font-weight: 600;
-    color: #e0e0e0;
+    color: #4CAF50;
 }
 
-.user-avatar {
-    width: 40px;
-    height: 40px;
-    background-color: #4CAF50; /* Green avatar background */
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.5rem;
-    color: white;
-    font-weight: bold;
+/* --- Main Video Feed Wrapper --- */
+.main-video-feed {
+    /* Padding was removed as it's redundant. 
+       The margin-bottom on .daily-verse-container handles the spacing. */
 }
-
-.avatar-icon {
-    /* For the default avatar icon (like 🧑) */
-    line-height: 1;
-}
-
-
-/* --- Buttons in Header (Logout, Upload) --- */
-.logout-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    background-color: #dc3545; /* Red */
-    color: white;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.logout-btn:hover {
-    background-color: #c82333;
-}
-
-.upload-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    background-color: #007bff; /* Blue */
-    color: white;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.upload-btn:hover {
-    background-color: #0056b3;
-}
-
-/* --- Feed Area --- */
-.feed-area {
-    flex-grow: 1;
-    padding: 2rem;
-    /* This ensures Feed.js content is centered within its max-width */
-    display: flex;
-    justify-content: center; 
-    align-items: flex-start; /* Align content to the top */
-}
-
-/* Adjust Feed.js container styles for the new layout */
-.feed-area .feed-container {
-    max-width: 100%; /* Allow it to fill the available space */
-    margin: 0; /* Remove auto margin, feed-area handles centering */
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid */
-    gap: 1.5rem;
-}
-
-.feed-area .video-card {
-    background: #333; /* Darker card background */
-    border: 1px solid #444;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-.feed-area .video-info h3 {
-    color: #f0f0f0; /* Lighter title text */
-}
-
-.feed-area .video-description {
-    color: #b0b0b0; /* Lighter description text */
-}
-
-.feed-area .video-thumbnail-placeholder {
-    background-color: #4a4a4a;
-    color: #bbb;
-}
-
-/* Optional: Make the scrollbar look nice for dark mode */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #282828;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #555;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #777;
-}
-
-/* Remove default styles from HomePage.css that are now handled by new structure */
-/* You might have a .home-container, .home-header, .home-content. Delete them or ensure they don't conflict */
-/* Example: 
-.home-container {
-    display: block; // Or delete
-}
-.home-header {
-    display: none; // Or delete
-}
-.home-content {
-    padding: 0; // Or delete
-}
-*/

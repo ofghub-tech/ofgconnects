@@ -1,35 +1,43 @@
 /* src/components/Feed.css */
+/* src/components/Feed.css */
 .feed-container {
-    max-width: 800px;
-    margin: 2rem auto;
-    display: flex;
-    flex-direction: column;
+    max-width: 100%;
+    margin: 0;
+    display: grid; 
+    
+    /* MODIFIED: Explicitly sets 3 columns of equal fraction (1fr) */
+    grid-template-columns: 1fr 1fr 1fr; 
+    
     gap: 1.5rem;
 }
 
+/* ... rest of the CSS code remains the same ... */
+
 .video-card {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: none; 
+    border: none; 
+    border-radius: 0; 
+    box-shadow: none; 
     overflow: hidden;
     text-align: left;
-    cursor: pointer; /* Keep this! It's for clicking */
-    transition: box-shadow 0.2s ease;
+    cursor: pointer;
+    transition: transform 0.2s ease;
 }
 
 .video-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Keep this! */
+    box-shadow: none;
+    transform: translateY(-2px); 
 }
 
 .video-thumbnail {
     width: 100%;
-    aspect-ratio: 16 / 9; /* Keep the 16:9 ratio */
-    background-color: #1a1a1a;
+    aspect-ratio: 16 / 9;
+    background-color: #3a3a3a;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    border-radius: 8px; 
 }
 
 .video-thumbnail img {
@@ -39,29 +47,41 @@
 }
 
 .video-info {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 0.25rem 0 0;
 }
 
 .video-info h3 {
-    margin: 0 0 0.5rem 0;
-    color: #333;
+    margin: 0 0 0.2rem 0;
+    color: #f0f0f0;
+    font-size: 1rem; 
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .video-description {
     font-size: 0.9rem;
-    color: #666;
+    color: #b0b0b0;
     margin: 0;
 }
 
 .video-thumbnail-placeholder {
     width: 100%;
     aspect-ratio: 16 / 9;
-    background-color: #eee;
+    background-color: #4a4a4a;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #888;
+    color: #bbb;
     font-weight: 600;
+    border-radius: 8px;
 }
 
-/* All the old modal styles are gone */
+.feed-empty-message {
+    padding-top: 50px;
+    font-size: 1.2rem;
+    color: #999;
+    text-align: center;
+    grid-column: 1 / -1; 
+}

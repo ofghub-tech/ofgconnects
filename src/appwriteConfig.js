@@ -1,5 +1,5 @@
 // src/appwriteConfig.js
-import { Client, Account, Databases, Storage } from 'appwrite';
+import { Client, Account, Databases, Storage, } from 'appwrite';
 
 export const client = new Client();
 
@@ -21,6 +21,8 @@ export const BUCKET_ID_THUMBNAILS = process.env.REACT_APP_BUCKET_ID_THUMBNAILS;
 export const COLLECTION_ID_COMMENTS = process.env.REACT_APP_COLLECTION_ID_COMMENTS; 
 export const COLLECTION_ID_SUBSCRIPTIONS = process.env.REACT_APP_COLLECTION_ID_SUBSCRIPTIONS; // ADD THIS LINE
 export const COLLECTION_ID_SHORTS = process.env.REACT_APP_COLLECTION_ID_SHORTS; // ADD THIS LINE
-// Export the Endpoint and Project ID
+export const COLLECTION_ID_LIKES = process.env.REACT_APP_COLLECTION_ID_LIKES; // ADD THIS LINE
+export const COLLECTION_ID_VERSES = process.env.REACT_APP_COLLECTION_ID_VERSES;
+// // Export the Endpoint and Project ID
 export const ENDPOINT = process.env.REACT_APP_APPWRITE_ENDPOINT;
 export const PROJECT_ID = process.env.REACT_APP_APPWRITE_PROJECT_ID;

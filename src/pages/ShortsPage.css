@@ -25,9 +25,8 @@
 
 .shorts-grid {
     display: grid;
-    /* This creates a grid of vertical-ratio cards */
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
 }
 
 .short-video-card {
@@ -37,7 +36,6 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     overflow: hidden;
     position: relative;
-    /* This forces the 9:16 aspect ratio */
     aspect-ratio: 9 / 16;
     cursor: pointer;
 }
@@ -45,7 +43,7 @@
 .short-video {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* This will fill the container */
+    object-fit: cover;
 }
 
 .short-video-info {
@@ -53,13 +51,77 @@
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 1rem;
+    padding: 0.75rem;
     background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
 }
 
 .short-video-user {
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #ffffff;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* --- Modal Styles (Crucial Changes Here) --- */
+
+.modal-content {
+    /* 1. Set max width to a vertical ratio based on height (80vh) */
+    max-width: calc(90vh * 9 / 16); 
+    max-height: 90vh;
+    padding: 0;
+    background: black;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+}
+
+.modal-overlay .modal-close-btn {
+    top: 10px;
+    right: 10px;
+    color: white;
+    z-index: 1001;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    line-height: 1;
+}
+
+.shorts-player-content {
+    /* 2. Enforce the 9:16 ratio on the content wrapper */
+    width: 100%; 
+    height: 100%;
+    aspect-ratio: 9 / 16;
+    display: flex;
+    background: black;
+    /* Removed redundant width/height settings */
+}
+
+.shorts-player-video {
+    /* Ensure the video container itself also respects the ratio */
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.full-screen-short-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* CRUCIAL: 'contain' ensures the video fits the 9:16 frame without stretching */
+    background: black; /* Ensure bars are black if video isn't exactly 9:16 */
+}
+
+.shorts-player-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 1rem;
+    color: white;
+    width: 100%;
+    box-sizing: border-box;
+    background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+}
+
+.shorts-overlay-user {
+    font-weight: bold;
+    font-size: 1.1rem;
 }

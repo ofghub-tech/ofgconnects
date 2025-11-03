@@ -4,7 +4,7 @@ import { databases, storage } from '../appwriteConfig';
 import { 
     DATABASE_ID, 
     COLLECTION_ID_VIDEOS, 
-    COLLECTION_ID_SHORTS, // 1. Import new Shorts collection ID
+    COLLECTION_ID_SHORTS, 
     BUCKET_ID_VIDEOS, 
     BUCKET_ID_THUMBNAILS,
     ENDPOINT,
@@ -19,15 +19,14 @@ const UploadForm = ({ onUploadSuccess }) => {
     
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('General'); // 1. New state for category
     const [videoFile, setVideoFile] = useState(null);
     const [thumbnailFile, setThumbnailFile] = useState(null);
     const [uploading, setUploading] = useState(false);
 
-    // --- 2. New state for video detection ---
     const [isShort, setIsShort] = useState(false);
     const [isCheckingVideo, setIsCheckingVideo] = useState(false);
 
-    // --- 3. New function to check video properties ---
     const handleVideoFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) {
@@ -38,19 +37,16 @@ const UploadForm = ({ onUploadSuccess }) => {
 
         setVideoFile(file);
         setIsCheckingVideo(true);
-        setIsShort(false); // Reset on new file
+        setIsShort(false); 
 
-        // Load video metadata
         const video = document.createElement('video');
         video.preload = 'metadata';
 
         video.onloadedmetadata = () => {
-            window.URL.revokeObjectURL(video.src); // Clean up memory
+            window.URL.revokeObjectURL(video.src);
             const duration = video.duration;
             const ratio = video.videoWidth / video.videoHeight;
 
-            // Check: duration < 90s AND aspect ratio is ~9:16 (0.5625)
-            // We'll allow a small range for the ratio, e.g., 0.5 to 0.6
             if (duration < 90 && ratio > 0.5 && ratio < 0.6) {
                 console.log('Video detected as a Short!');
                 setIsShort(true);
@@ -69,11 +65,9 @@ const UploadForm = ({ onUploadSuccess }) => {
         video.src = URL.createObjectURL(file);
     };
 
-    // --- 4. Updated handleSubmit logic ---
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check if files are selected
         if (!videoFile) {
             alert('Please select a video file.');
             return;
@@ -87,18 +81,15 @@ const UploadForm = ({ onUploadSuccess }) => {
 
         try {
             // --- 1. UPLOAD VIDEO (Common for both) ---
-            console.log('Uploading video file...');
             const videoFileResponse = await storage.createFile(
-                BUCKET_ID_VIDEOS, // Use the same bucket for all videos
+                BUCKET_ID_VIDEOS, 
                 ID.unique(),
                 videoFile,
                 [Permission.read(Role.any())]
             );
             const videoFileId = videoFileResponse.$id;
             const videoUrlString = `${ENDPOINT}/storage/buckets/${BUCKET_ID_VIDEOS}/files/${videoFileId}/view?project=${PROJECT_ID}`;
-            console.log('Video file uploaded:', videoFileId);
 
-            // --- 2. DEFINE PAYLOAD & COLLECTION based on type ---
             let collectionId;
             let payload;
 
@@ -114,7 +105,6 @@ const UploadForm = ({ onUploadSuccess }) => {
             } else {
                 // --- UPLOAD AS REGULAR VIDEO ---
                 // Upload thumbnail
-                console.log('Uploading thumbnail file...');
                 const thumbnailFileResponse = await storage.createFile(
                     BUCKET_ID_THUMBNAILS,
                     ID.unique(),
@@ -128,6 +118,7 @@ const UploadForm = ({ onUploadSuccess }) => {
                 payload = {
                     title: title,
                     description: description || null, 
+                    category: category, // 2. Add category to payload
                     videoUrl: videoUrlString,
                     thumbnailUrl: thumbnailUrlString,
                     likeCount: 0,              
@@ -138,7 +129,6 @@ const UploadForm = ({ onUploadSuccess }) => {
             }
 
             // --- 3. CREATE THE DOCUMENT ---
-            console.log(`Creating document in ${collectionId}...`);
             await databases.createDocument(
                 DATABASE_ID,
                 collectionId,
@@ -156,6 +146,7 @@ const UploadForm = ({ onUploadSuccess }) => {
             // Reset form
             setTitle('');
             setDescription('');
+            setCategory('General'); // Reset category
             setVideoFile(null);
             setThumbnailFile(null);
             setIsShort(false);
@@ -173,9 +164,7 @@ const UploadForm = ({ onUploadSuccess }) => {
         <form onSubmit={handleSubmit} className="upload-form">
             <h3>Upload a New Video</h3>
             
-            {/* --- 5. Conditionally show fields --- */}
-            
-            {/* Title and Description are hidden for Shorts */}
+            {/* Title, Description, and Category are only for regular videos */}
             {!isShort && (
                 <>
                     <div className="form-group">
@@ -189,6 +178,19 @@ const UploadForm = ({ onUploadSuccess }) => {
                     </div>
                     
                     <div className="form-group">
+                        <label>Category</label>
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            disabled={uploading || isCheckingVideo}
+                        >
+                            <option value="General">General</option>
+                            <option value="Songs">Songs</option>
+                            <option value="Kids">Kids</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
                         <label>Description</label>
                         <textarea
                             value={description}
@@ -196,21 +198,18 @@ const UploadForm = ({ onUploadSuccess }) => {
                             disabled={uploading || isCheckingVideo}
                         />
                     </div>
+                    
+                    <div className="form-group">
+                        <label>Thumbnail (Image, required)</label>
+                        <input 
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setThumbnailFile(e.target.files[0])}
+                            disabled={uploading || isCheckingVideo}
+                            className="file-input"
+                        />
+                    </div>
                 </>
-            )}
-            
-            {/* Thumbnail is hidden for Shorts */}
-            {!isShort && (
-                <div className="form-group">
-                    <label>Thumbnail (Image, required)</label>
-                    <input 
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setThumbnailFile(e.target.files[0])}
-                        disabled={uploading || isCheckingVideo}
-                        className="file-input"
-                    />
-                </div>
             )}
 
             <div className="form-group">
@@ -218,14 +217,12 @@ const UploadForm = ({ onUploadSuccess }) => {
                 <input 
                     type="file"
                     accept="video/*"
-                    // 6. Use the new change handler
                     onChange={handleVideoFileChange}
                     disabled={uploading || isCheckingVideo}
                     className="file-input"
                 />
             </div>
             
-            {/* 7. Show messages based on detection */}
             {isCheckingVideo && <p>Checking video properties...</p>}
             {isShort && !isCheckingVideo && (
                 <p style={{ color: '#4CAF50', fontWeight: 'bold' }}>

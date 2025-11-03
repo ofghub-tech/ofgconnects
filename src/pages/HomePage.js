@@ -1,103 +1,133 @@
 // src/pages/HomePage.js
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import './HomePage.css'; // This will contain all the new styles
-import Feed from '../components/Feed'; 
-import UploadForm from '../components/UploadForm'; 
-import Modal from '../components/Modal';
+import React, { useState, useEffect } from 'react';
+import { databases } from '../appwriteConfig';
+import { DATABASE_ID, COLLECTION_ID_VERSES, COLLECTION_ID_VIDEOS } from '../appwriteConfig'; 
+import { Query } from 'appwrite';
+import Feed from '../components/Feed';
+import './HomePage.css';
 
 const HomePage = () => {
-    const { user, logoutUser } = useAuth(); 
-    const navigate = useNavigate();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState(''); // New state for search
+    // State
+    const [searchTerm] = useState(null); 
+    const [dailyVerse, setDailyVerse] = useState(null);
+    const [verseLoading, setVerseLoading] = useState(true);
+    const [videos, setVideos] = useState([]); 
+    const [videosLoading, setVideosLoading] = useState(true); 
 
-    const handleLogout = async () => {
-        try {
-            await logoutUser();
-            navigate('/'); 
-        } catch (error) {
-            console.error('Failed to logout:', error);
+    // ------------------------------------
+    // 1. LOGIC TO FETCH MAIN VIDEO FEED
+    // ------------------------------------
+    useEffect(() => {
+        const fetchVideos = async () => {
+            try {
+                const response = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTION_ID_VIDEOS, 
+                    [Query.limit(25), Query.orderDesc('$createdAt')] 
+                );
+                setVideos(response.documents);
+            } catch (error) {
+                console.error("Failed to fetch videos for the feed:", error);
+            }
+            setVideosLoading(false);
+        };
+        fetchVideos();
+    }, []); 
+
+
+    // ------------------------------------
+    // 2. LOGIC TO FETCH RANDOM DAILY VERSE
+    // ------------------------------------
+    useEffect(() => {
+        const fetchRandomVerse = async () => {
+            try {
+                // --- ★ THE FIX IS HERE ★ ---
+                // We changed Query.limit(0) to Query.limit(1)
+                // Appwrite does not allow a limit of 0.
+                const countResponse = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTION_ID_VERSES,
+                    [Query.limit(1)] 
+                );
+                // --- ★ END OF FIX ★ ---
+
+                const totalVerses = countResponse.total;
+                if (totalVerses === 0) {
+                    setDailyVerse({ verseText: "No verses uploaded yet.", reference: "" });
+                    setVerseLoading(false);
+                    return;
+                }
+                const randomOffset = Math.floor(Math.random() * totalVerses);
+                const verseResponse = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTION_ID_VERSES,
+                    [Query.offset(randomOffset), Query.limit(1)]
+                );
+                
+                if (verseResponse.documents.length > 0) {
+                    const fetchedVerse = verseResponse.documents[0];
+                    setDailyVerse(fetchedVerse);
+                    localStorage.setItem('dailyBibleVerse', JSON.stringify(fetchedVerse)); 
+                }
+
+            } catch (error) {
+                // Now we can go back to a clean catch block
+                console.error("Failed to fetch daily verse:", error); 
+                setDailyVerse({ 
+                    verseText: "Failed to load verse.", 
+                    reference: "Check Appwrite connection." 
+                });
+            }
+            setVerseLoading(false);
+        };
+
+        // Cache check logic
+        const lastFetchTime = localStorage.getItem('lastVerseFetch');
+        const now = new Date().getTime();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const storedVerse = localStorage.getItem('dailyBibleVerse');
+
+        if (!lastFetchTime || (now - lastFetchTime > oneDay)) {
+            fetchRandomVerse();
+            localStorage.setItem('lastVerseFetch', String(now));
+        } else if (storedVerse) {
+            setDailyVerse(JSON.parse(storedVerse));
+            setVerseLoading(false);
+        } else {
+            fetchRandomVerse();
         }
-    };
+        
+    }, []); 
 
-    const handleUploadSuccess = () => {
-        setIsModalOpen(false);
-        // We'll need to refresh the feed component directly later for search, 
-        // but for now, a full page reload is fine.
-        window.location.reload(); 
-    };
-
+    // ------------------------------------
+    // 3. RENDER FUNCTION
+    // ------------------------------------
     return (
-        <div className="app-layout"> {/* New overall layout container */}
-            <aside className="sidebar"> {/* New sidebar */}
-                <div className="logo-section">
-                    <img src="/ofg-logo.png" alt="OfgConnects Logo" className="app-logo" /> {/* You'll need to add a logo image here */}
-                    <h1>OfgConnects</h1>
-                </div>
-                <nav className="main-nav">
-                    {/* These will eventually be real routes */}
-                    <button className="nav-item active" onClick={() => navigate('/home')}>
-                        <span className="icon">🏠</span> Home
-                    </button>
-                    <button className="nav-item" onClick={() => navigate('/shorts')}>
-                        <span className="icon">🎬</span> Shorts
-                    </button>
-                    <button className="nav-item" onClick={() => navigate('/following')}>
-                        <span className="icon">🤝</span> Following
-                    </button>
-                    <button className="nav-item" onClick={() => navigate('/myspace')}>
-                        <span className="icon">👤</span> Myspace
-                    </button>
-                    <button className="nav-item" onClick={() => console.log('Offline clicked')}>
-                        <span className="icon">🔌</span> Offline
-                    </button>
-                    <button className="nav-item" onClick={() => console.log('Kids clicked')}>
-                        <span className="icon">🧒</span> Kids
-                    </button>
-                </nav>
-            </aside>
-
-            <div className="main-content-area"> {/* Main content area for header and feed */}
-                <header className="top-header"> {/* New top header for search and user */}
-                    <div className="search-bar-container">
-                        <input 
-                            type="text" 
-                            placeholder="Search" 
-                            className="search-input"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <button className="search-icon">🔍</button>
-                    </div>
-                    <div className="user-profile-section">
-                        {/* You can add a profile image here later */}
-                        <span className="username">{user ? user.name : 'Guest'}</span>
-                        <button onClick={handleLogout} className="logout-btn">
-                            Logout
-                        </button>
-                        <button 
-                            onClick={() => setIsModalOpen(true)} 
-                            className="upload-btn"
-                        >
-                            Upload
-                        </button>
-                        {/* A placeholder for the user avatar, matching your design */}
-                        <div className="user-avatar">
-                            <span className="avatar-icon">🧑</span>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="feed-area"> {/* Where the Feed component will render */}
-                    <Feed searchTerm={searchTerm} /> {/* Pass searchTerm to Feed */}
-                </main>
+        <div className="feed-area-wrapper">
+            
+            {/* 1. Daily Random Verse Section */}
+            <div className="daily-verse-container">
+                {verseLoading ? (
+                    <p className="verse-loading">Loading today's inspiration...</p>
+                ) : (
+                    dailyVerse && (
+                        <>
+                            <p className="verse-text">{dailyVerse.verseText}</p>
+                            <span className="verse-reference">{dailyVerse.reference}</span>
+                        </>
+                    )
+                )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-                <UploadForm onUploadSuccess={handleUploadSuccess} />
-            </Modal>
+            {/* 2. Main Video Feed */}
+            <div className="main-video-feed">
+                {videosLoading ? (
+                    <p>Loading videos for your feed...</p>
+                ) : (
+                    <Feed searchTerm={searchTerm} videos={videos} /> 
+                )}
+            </div>
+            
         </div>
     );
 };

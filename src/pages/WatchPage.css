@@ -99,3 +99,38 @@
     font-weight: 600;
     color: #f0f0f0;
 }
+
+/* --- New Download Button Styles --- */
+
+.action-buttons-group {
+    display: flex;
+    gap: 1rem; /* Space between Download and Follow buttons */
+}
+
+.download-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    
+    /* Default state: Blue */
+    background-color: #007bff;
+    color: white;
+}
+
+.download-btn.downloaded {
+    /* Downloaded state: Grey/Darker */
+    background-color: #4a4a4a;
+    color: #b0b0b0;
+}
+
+.download-btn:hover {
+    opacity: 0.9;
+}
+/* src/pages/WatchPage.css */
+.creator-details.clickable {
+    cursor: pointer;
+}

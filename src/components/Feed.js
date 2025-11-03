@@ -3,33 +3,31 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
-import { Query } from 'appwrite'; // 1. Make sure Query is imported
-import './Feed.css';
+import { Query } from 'appwrite';
+import './Feed.css'; // This is where the grid styles will go
 
-// 2. Accept the 'searchTerm' prop
 const Feed = ({ searchTerm }) => {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // 3. Update useEffect to run when 'searchTerm' changes
     useEffect(() => {
         const getVideos = async () => {
             setLoading(true);
             try {
                 let queries = [];
 
-                // 4. If there is a search term, use the search query
                 if (searchTerm) {
                     queries.push(Query.search('title', searchTerm));
                 }
                 
-                // You can add other queries here too, like Query.orderDesc('$createdAt')
+                // Ensure videos are ordered newest first by default
+                queries.push(Query.orderDesc('$createdAt')); 
 
                 const response = await databases.listDocuments(
                     DATABASE_ID,
                     COLLECTION_ID_VIDEOS,
-                    queries // 5. Pass the queries array to the API call
+                    queries 
                 );
                 
                 setVideos(response.documents);
@@ -40,7 +38,7 @@ const Feed = ({ searchTerm }) => {
         };
 
         getVideos();
-    }, [searchTerm]); // 6. Add 'searchTerm' as a dependency
+    }, [searchTerm]);
 
     if (loading) {
         return <p>Loading videos...</p>
@@ -49,7 +47,7 @@ const Feed = ({ searchTerm }) => {
     return (
         <div className="feed-container">
             {videos.length === 0 && !loading && (
-                <p>
+                <p className="feed-empty-message">
                     {searchTerm 
                         ? `No results found for "${searchTerm}"` 
                         : "No videos yet. Be the first to upload!"}
@@ -62,7 +60,6 @@ const Feed = ({ searchTerm }) => {
                     className="video-card" 
                     onClick={() => navigate(`/watch/${video.$id}`)}
                 >
-                    
                     <div className="video-thumbnail">
                         {(typeof video.thumbnailUrl === 'string' && video.thumbnailUrl) ? (
                             <img 
@@ -75,10 +72,9 @@ const Feed = ({ searchTerm }) => {
                             </div>
                         )}
                     </div>
-
                     <div className="video-info">
                         <h3>{video.title}</h3>
-                        <p className="video-description">{video.description}</p>
+                        <p className="video-description">By: {video.username}</p>
                     </div>
                 </div>
             ))}
