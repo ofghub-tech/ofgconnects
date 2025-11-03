@@ -13,6 +13,13 @@ import OfflinePage from './pages/OfflinePage';
 import SongsPage from './pages/SongsPage';
 import KidsPage from './pages/KidsPage';
 import Sidebar from './components/Sidebar'; 
+
+// --- NEW PAGE IMPORTS ---
+import HistoryPage from './pages/HistoryPage';
+import WatchLaterPage from './pages/WatchLaterPage';
+import LikedVideosPage from './pages/LikedVideosPage';
+// --- END NEW PAGE IMPORTS ---
+
 // NO LONGER NEEDED: import './App.css';
 
 // --- Protected Route Component ---
@@ -81,6 +88,13 @@ function App() {
                   <Route path="/watch/:videoId" element={<WatchPage />} />
                   <Route path="/myspace" element={<MySpacePage />} />
                   <Route path="/following" element={<FollowingPage />} />
+                  
+                  {/* --- NEW ROUTES ADDED --- */}
+                  <Route path="/history" element={<HistoryPage />} />
+                  <Route path="/watch-later" element={<WatchLaterPage />} />
+                  <Route path="/liked-videos" element={<LikedVideosPage />} />
+                  {/* --- END NEW ROUTES --- */}
+                  
                   <Route path="/shorts" element={<ShortsPage />} />
                   <Route path="/offline" element={<OfflinePage />} />
                   <Route path="/songs" element={<SongsPage />} />

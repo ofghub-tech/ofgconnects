@@ -15,26 +15,34 @@ const BookIcon = (props) => (
 
 // --- Data Fetching Function ---
 const fetchRandomVerse = async () => {
+    // 1. Get the total count of verses
     const countResponse = await databases.listDocuments(
         DATABASE_ID,
         COLLECTION_ID_VERSES,
-        [Query.limit(1)] 
+        [Query.limit(1)] // Efficient query just to get the 'total'
     );
+    
     const totalVerses = countResponse.total;
     if (totalVerses === 0) {
         throw new Error("No verses uploaded yet.");
     }
+
+    // 2. Pick a random number between 0 and (total - 1)
     const randomOffset = Math.floor(Math.random() * totalVerses);
+
+    // 3. Fetch the document at that random offset
     const verseResponse = await databases.listDocuments(
         DATABASE_ID,
         COLLECTION_ID_VERSES,
         [Query.offset(randomOffset), Query.limit(1)]
     );
+    
     return verseResponse.documents[0];
 };
 
 // --- HomePage Component ---
 const HomePage = () => {
+    // This state is here in case you want to add a search bar *above* the feed later
     const [searchTerm] = useState(null); 
 
     const { 
@@ -44,27 +52,26 @@ const HomePage = () => {
     } = useQuery({
         queryKey: ['dailyVerse'],
         queryFn: fetchRandomVerse,
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
+        staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
+        refetchOnWindowFocus: false, // Don't refetch just for switching tabs
     });
 
     return (
-        <div>
+        <div className="w-full">
             
-            {/* 1. Daily Random Verse Section (Refactored for emphasis) */}
+            {/* 1. Daily Random Verse Section (Styled for light theme) */}
             <div className="border-b border-gray-200 bg-amber-50 p-6 shadow-sm">
                 
                 {/* --- Section Header --- */}
                 <div className="flex items-center justify-center gap-3 mb-4">
                     <BookIcon className="h-6 w-6 text-amber-700" />
-                    
-                    {/* ★ CHANGED: text-gray-800 to text-amber-700 */}
                     <h2 className="text-lg font-semibold text-amber-700">
-                        Verse
+                        Verse of the Day
                     </h2>
                 </div>
                 
                 {/* --- Verse Content --- */}
-                <div className="text-center">
+                <div className="text-center min-h-[80px]"> {/* min-height prevents layout shift */}
                     {verseLoading ? (
                         <p className="italic text-gray-500">Loading today's inspiration...</p>
                     ) : verseError ? (

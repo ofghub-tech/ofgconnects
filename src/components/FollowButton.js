@@ -7,9 +7,7 @@ import {
     COLLECTION_ID_SUBSCRIPTIONS 
 } from '../appwriteConfig';
 import { ID, Permission, Role, Query } from 'appwrite';
-import './FollowButton.css';
 
-// 1. Accept the new 'creatorName' prop
 const FollowButton = ({ creatorId, creatorName }) => {
     const { user } = useAuth();
     const [isFollowing, setIsFollowing] = useState(false);
@@ -42,7 +40,6 @@ const FollowButton = ({ creatorId, creatorName }) => {
                 }
             } catch (error) {
                 console.error("Failed to check subscription:", error);
-                alert(`Error checking subscription: ${error.message}`);
             }
             setIsLoading(false);
         };
@@ -51,14 +48,16 @@ const FollowButton = ({ creatorId, creatorName }) => {
     }, [user, creatorId]);
 
     const handleFollow = async () => {
+        if (!user) {
+             alert("Please log in to follow creators.");
+             return;
+        }
         try {
-            // 2. Add the creatorName to the payload
             const payload = {
                 followerId: user.$id,
                 followingId: creatorId,
-                followingUsername: creatorName // <-- THIS IS THE NEW LINE
+                followingUsername: creatorName 
             };
-            
             const response = await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_SUBSCRIPTIONS,
@@ -69,7 +68,6 @@ const FollowButton = ({ creatorId, creatorName }) => {
                     Permission.delete(Role.user(user.$id))
                 ]
             );
-            
             setIsFollowing(true);
             setSubscriptionId(response.$id);
         } catch (error) {
@@ -79,6 +77,10 @@ const FollowButton = ({ creatorId, creatorName }) => {
     };
 
     const handleUnfollow = async () => {
+        if (!user) {
+             alert("Please log in.");
+             return;
+        }
         try {
             await databases.deleteDocument(
                 DATABASE_ID,
@@ -93,14 +95,28 @@ const FollowButton = ({ creatorId, creatorName }) => {
         }
     };
 
+    // --- UPDATED Tailwind Classes (per your screenshot) ---
+    const followButtonClasses = `
+        flex items-center justify-center
+        py-2 px-4 h-9 rounded-full 
+        font-medium text-sm
+        transition-colors duration-200 ease-in-out
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${isFollowing 
+            ? 'bg-gray-100 text-neutral-800 hover:bg-gray-200'  // Following state (light gray)
+            : 'bg-neutral-900 text-white hover:bg-neutral-700' // Default state (solid black)
+        }
+    `;
+
     if (isLoading || !user || user.$id === creatorId) {
         return null; 
     }
 
     return (
         <button 
-            className={`follow-btn ${isFollowing ? 'following' : ''}`}
+            className={followButtonClasses}
             onClick={isFollowing ? handleUnfollow : handleFollow}
+            disabled={!user || isLoading} // Added isLoading to disabled state
         >
             {isFollowing ? 'Following' : 'Follow'}
         </button>

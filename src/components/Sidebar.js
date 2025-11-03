@@ -19,6 +19,12 @@ const DownloadIcon = (props) => <IconWrapper {...props}><path d="M21 15v4a2 2 0 
 const MusicIcon = (props) => <IconWrapper {...props}><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></IconWrapper>;
 const SmileIcon = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></IconWrapper>;
 
+// --- NEW ICONS ADDED ---
+const HistoryIcon = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></IconWrapper>;
+const BookmarkIcon = (props) => <IconWrapper {...props}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></IconWrapper>;
+const ThumbsUpIcon = (props) => <IconWrapper {...props}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></IconWrapper>;
+// --- END OF NEW ICONS ---
+
 
 // --- NavLink Wrapper Component ---
 const SidebarLink = ({ to, icon, label, isSidebarOpen }) => {
@@ -68,6 +74,12 @@ const Sidebar = ({ isSidebarOpen }) => {
                     <SidebarLink to="/home" icon={<HomeIcon />} label="Home" isSidebarOpen={isSidebarOpen} />
                     <SidebarLink to="/myspace" icon={<UserIcon />} label="My Space" isSidebarOpen={isSidebarOpen} />
                     <SidebarLink to="/following" icon={<UsersIcon />} label="Following" isSidebarOpen={isSidebarOpen} />
+                    
+                    {/* --- NEW LINKS ADDED --- */}
+                    <SidebarLink to="/history" icon={<HistoryIcon />} label="History" isSidebarOpen={isSidebarOpen} />
+                    <SidebarLink to="/watch-later" icon={<BookmarkIcon />} label="Watch Later" isSidebarOpen={isSidebarOpen} />
+                    <SidebarLink to="/liked-videos" icon={<ThumbsUpIcon />} label="Liked Videos" isSidebarOpen={isSidebarOpen} />
+                    {/* --- END OF NEW LINKS --- */}
                 </div>
 
                 {/* Separator: Replaced 'sidebar-separator' */}
