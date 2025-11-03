@@ -62,8 +62,8 @@ const FollowingPage = () => {
                                 className="channel-card"
                             >
                                 <div className="channel-card-avatar">
-                                    {/* 2. AVATAR CHANGED to user's initial */}
-                                    {sub.followingUsername.charAt(0).toUpperCase()}
+                                    {/* ★ THE FIX IS HERE ★ */}
+                                    {(sub.followingUsername || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div className="channel-card-info">
                                     <span className="channel-card-name">{sub.followingUsername}</span>

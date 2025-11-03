@@ -1,117 +1,159 @@
 // src/pages/LoginPage.js
-import React, { useState, useEffect } from 'react';
-import './LoginPage.css';
-import { useAuth } from '../context/AuthContext'; // Import the useAuth hook
-import { useNavigate } from 'react-router-dom'; // Import for redirection
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Navigate } from 'react-router-dom';
+// NO LONGER NEEDED: import './LoginPage.css';
 
 const LoginPage = () => {
-    // Get googleLogin from our context
     const { user, loginUser, registerUser, googleLogin } = useAuth();
     const navigate = useNavigate();
+    const [isLoginView, setIsLoginView] = useState(true);
+    const [error, setError] = useState('');
 
-    const [isRegistering, setIsRegistering] = useState(false);
+    // Form state
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    useEffect(() => {
-        // If the user is already logged in, redirect to home
-        if (user) {
-            navigate('/home');
-        }
-    }, [user, navigate]);
-
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(''); // Clear previous errors
+
         try {
-            if (isRegistering) {
-                await registerUser(email, password, name);
-            } else {
+            if (isLoginView) {
                 await loginUser(email, password);
+            } else {
+                await registerUser(email, password, name);
             }
-            // The useEffect will catch the user change and navigate
+            navigate('/home');
         } catch (error) {
-            alert(`Failed: ${error.message}`);
+            console.error('Failed to login/register:', error);
+            setError(error.message || 'An error occurred. Please try again.');
         }
     };
 
-    const handleGoogleLoginClick = async () => {
+    const handleGoogleLogin = async () => {
         try {
             await googleLogin();
-            // No need to navigate, the googleLogin function's
-            // success redirect will handle it.
+            // Note: Appwrite redirects, so navigate() here might not be strictly needed
         } catch (error) {
-            // Error is already alerted in the context function
+            setError(error.message || 'Failed to login with Google.');
         }
     };
 
+    // If user is already logged in, redirect to home
+    if (user) {
+        return <Navigate to="/home" />;
+    }
+
     return (
-        <div className="login-container">
-            <form onSubmit={handleSubmit} className="login-form">
+        // Replaced 'login-page-container'
+        <div className="flex justify-center items-center min-h-screen bg-gray-100">
+            {/* Replaced 'login-form-wrapper' */}
+            <div className="bg-white p-8 sm:p-10 rounded-lg shadow-md w-full max-w-md text-center">
                 
-                <h2>{isRegistering ? 'Create Account' : 'Login to OfgConnects'}</h2>
-                
-                {/* --- Name Field (Only for Registering) --- */}
-                {isRegistering && (
-                    <div className="form-group">
-                        <label>Name</label>
-                        <input 
-                            type="text" 
-                            value={name} 
-                            onChange={(e) => setName(e.target.value)} 
-                            required 
+                {/* Header */}
+                <h2 className="mb-2 text-3xl font-bold text-gray-800">
+                    {isLoginView ? 'Welcome Back!' : 'Create Account'}
+                </h2>
+                <p className="mb-6 text-gray-600">
+                    {isLoginView ? 'Log in to continue.' : 'Sign up to get started.'}
+                </p>
+
+                {/* Error Message: Replaced 'error-message' */}
+                {error && (
+                    <p className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-md mb-4 text-sm">
+                        {error}
+                    </p>
+                )}
+
+                {/* Form: Replaced 'auth-form' */}
+                <form onSubmit={handleSubmit}>
+                    {!isLoginView && (
+                        // Replaced 'form-group'
+                        <div className="mb-4 text-left">
+                            <label htmlFor="name" className="block mb-2 font-medium text-gray-700">
+                                Full Name
+                            </label>
+                            <input
+                                type="text"
+                                id="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    )}
+                    {/* Replaced 'form-group' */}
+                    <div className="mb-4 text-left">
+                        <label htmlFor="email" className="block mb-2 font-medium text-gray-700">
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                )}
-                
-                {/* --- Email Field --- */}
-                <div className="form-group">
-                    <label>Email</label>
-                    <input 
-                        type="email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        required 
-                    />
-                </div>
-                
-                {/* --- Password Field --- */}
-                <div className="form-group">
-                    <label>Password</label>
-                    <input 
-                        type="password" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                    />
-                </div>
-                
-                {/* --- Submit Button --- */}
-                <button type="submit" className="submit-btn">
-                    {isRegistering ? 'Sign Up' : 'Login'}
-                </button>
-                
-                {/* --- OR Divider --- */}
-                <div className="divider">
-                    <span>OR</span>
+                    {/* Replaced 'form-group' */}
+                    <div className="mb-5 text-left">
+                        <label htmlFor="password" className="block mb-2 font-medium text-gray-700">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+
+                    {/* Replaced 'btn btn-primary' */}
+                    <button type="submit" className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                        {isLoginView ? 'Log In' : 'Sign Up'}
+                    </button>
+                </form>
+
+                {/* Divider: Replaced 'divider' */}
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-gray-300"></span>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-2 text-gray-500">OR</span>
+                    </div>
                 </div>
 
-                {/* --- Google Login Button --- */}
+                {/* Google Login: Replaced 'btn btn-google' */}
                 <button 
-                    type="button" // Important: set type to "button" so it doesn't submit the form
-                    className="google-btn" 
-                    onClick={handleGoogleLoginClick}
+                    type="button" 
+                    className="w-full py-3 px-4 flex justify-center items-center gap-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                    onClick={handleGoogleLogin}
                 >
-                    Sign in with Google
+                    {/* This is a simple SVG for the Google icon. */}
+                    <svg className="w-5 h-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 381.5 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 125.2 26.7 169.5 69.1L359.7 138.8C322.9 104.9 288.6 84 248 84c-80.9 0-146.5 65.6-146.5 146.5S167.1 377 248 377c90.1 0 131.6-63.3 136-98.8H248v-66.2h238.5c1.3 13.3 2.5 27.6 2.5 42.8z"></path>
+                    </svg>
+                    Continue with Google
                 </button>
 
-                {/* --- Toggle Link --- */}
-                <p className="toggle-form" onClick={() => setIsRegistering(!isRegistering)}>
-                    {isRegistering 
-                        ? 'Already have an account? Login' 
-                        : "Don't have an account? Sign Up"}
+                {/* Toggle View: Replaced 'toggle-view' */}
+                <p className="mt-6 text-sm text-gray-600">
+                    {isLoginView ? "Don't have an account?" : 'Already have an account?'}
+                    <span 
+                        onClick={() => setIsLoginView(!isLoginView)}
+                        className="ml-1 font-medium text-blue-600 hover:underline cursor-pointer"
+                    >
+                        {isLoginView ? ' Sign Up' : ' Log In'}
+                    </span>
                 </p>
-            </form>
+            </div>
         </div>
     );
 };

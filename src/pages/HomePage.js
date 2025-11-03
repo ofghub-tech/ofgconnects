@@ -1,132 +1,91 @@
 // src/pages/HomePage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { databases } from '../appwriteConfig';
-import { DATABASE_ID, COLLECTION_ID_VERSES, COLLECTION_ID_VIDEOS } from '../appwriteConfig'; 
+import { DATABASE_ID, COLLECTION_ID_VERSES } from '../appwriteConfig'; 
 import { Query } from 'appwrite';
 import Feed from '../components/Feed';
-import './HomePage.css';
+import { useQuery } from '@tanstack/react-query';
 
+// --- Book Icon Component ---
+const BookIcon = (props) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+    </svg>
+);
+
+// --- Data Fetching Function ---
+const fetchRandomVerse = async () => {
+    const countResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID_VERSES,
+        [Query.limit(1)] 
+    );
+    const totalVerses = countResponse.total;
+    if (totalVerses === 0) {
+        throw new Error("No verses uploaded yet.");
+    }
+    const randomOffset = Math.floor(Math.random() * totalVerses);
+    const verseResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID_VERSES,
+        [Query.offset(randomOffset), Query.limit(1)]
+    );
+    return verseResponse.documents[0];
+};
+
+// --- HomePage Component ---
 const HomePage = () => {
-    // State
     const [searchTerm] = useState(null); 
-    const [dailyVerse, setDailyVerse] = useState(null);
-    const [verseLoading, setVerseLoading] = useState(true);
-    const [videos, setVideos] = useState([]); 
-    const [videosLoading, setVideosLoading] = useState(true); 
 
-    // ------------------------------------
-    // 1. LOGIC TO FETCH MAIN VIDEO FEED
-    // ------------------------------------
-    useEffect(() => {
-        const fetchVideos = async () => {
-            try {
-                const response = await databases.listDocuments(
-                    DATABASE_ID,
-                    COLLECTION_ID_VIDEOS, 
-                    [Query.limit(25), Query.orderDesc('$createdAt')] 
-                );
-                setVideos(response.documents);
-            } catch (error) {
-                console.error("Failed to fetch videos for the feed:", error);
-            }
-            setVideosLoading(false);
-        };
-        fetchVideos();
-    }, []); 
+    const { 
+        data: dailyVerse, 
+        isLoading: verseLoading, 
+        isError: verseError 
+    } = useQuery({
+        queryKey: ['dailyVerse'],
+        queryFn: fetchRandomVerse,
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    });
 
-
-    // ------------------------------------
-    // 2. LOGIC TO FETCH RANDOM DAILY VERSE
-    // ------------------------------------
-    useEffect(() => {
-        const fetchRandomVerse = async () => {
-            try {
-                // --- ★ THE FIX IS HERE ★ ---
-                // We changed Query.limit(0) to Query.limit(1)
-                // Appwrite does not allow a limit of 0.
-                const countResponse = await databases.listDocuments(
-                    DATABASE_ID,
-                    COLLECTION_ID_VERSES,
-                    [Query.limit(1)] 
-                );
-                // --- ★ END OF FIX ★ ---
-
-                const totalVerses = countResponse.total;
-                if (totalVerses === 0) {
-                    setDailyVerse({ verseText: "No verses uploaded yet.", reference: "" });
-                    setVerseLoading(false);
-                    return;
-                }
-                const randomOffset = Math.floor(Math.random() * totalVerses);
-                const verseResponse = await databases.listDocuments(
-                    DATABASE_ID,
-                    COLLECTION_ID_VERSES,
-                    [Query.offset(randomOffset), Query.limit(1)]
-                );
-                
-                if (verseResponse.documents.length > 0) {
-                    const fetchedVerse = verseResponse.documents[0];
-                    setDailyVerse(fetchedVerse);
-                    localStorage.setItem('dailyBibleVerse', JSON.stringify(fetchedVerse)); 
-                }
-
-            } catch (error) {
-                // Now we can go back to a clean catch block
-                console.error("Failed to fetch daily verse:", error); 
-                setDailyVerse({ 
-                    verseText: "Failed to load verse.", 
-                    reference: "Check Appwrite connection." 
-                });
-            }
-            setVerseLoading(false);
-        };
-
-        // Cache check logic
-        const lastFetchTime = localStorage.getItem('lastVerseFetch');
-        const now = new Date().getTime();
-        const oneDay = 24 * 60 * 60 * 1000;
-        const storedVerse = localStorage.getItem('dailyBibleVerse');
-
-        if (!lastFetchTime || (now - lastFetchTime > oneDay)) {
-            fetchRandomVerse();
-            localStorage.setItem('lastVerseFetch', String(now));
-        } else if (storedVerse) {
-            setDailyVerse(JSON.parse(storedVerse));
-            setVerseLoading(false);
-        } else {
-            fetchRandomVerse();
-        }
-        
-    }, []); 
-
-    // ------------------------------------
-    // 3. RENDER FUNCTION
-    // ------------------------------------
     return (
-        <div className="feed-area-wrapper">
+        <div>
             
-            {/* 1. Daily Random Verse Section */}
-            <div className="daily-verse-container">
-                {verseLoading ? (
-                    <p className="verse-loading">Loading today's inspiration...</p>
-                ) : (
-                    dailyVerse && (
-                        <>
-                            <p className="verse-text">{dailyVerse.verseText}</p>
-                            <span className="verse-reference">{dailyVerse.reference}</span>
-                        </>
-                    )
-                )}
+            {/* 1. Daily Random Verse Section (Refactored for emphasis) */}
+            <div className="border-b border-gray-200 bg-amber-50 p-6 shadow-sm">
+                
+                {/* --- Section Header --- */}
+                <div className="flex items-center justify-center gap-3 mb-4">
+                    <BookIcon className="h-6 w-6 text-amber-700" />
+                    
+                    {/* ★ CHANGED: text-gray-800 to text-amber-700 */}
+                    <h2 className="text-lg font-semibold text-amber-700">
+                        Verse
+                    </h2>
+                </div>
+                
+                {/* --- Verse Content --- */}
+                <div className="text-center">
+                    {verseLoading ? (
+                        <p className="italic text-gray-500">Loading today's inspiration...</p>
+                    ) : verseError ? (
+                        <p className="font-semibold text-red-500">Failed to load verse.</p>
+                    ) : (
+                        dailyVerse && (
+                            <blockquote className="relative">
+                                <p className="mb-3 text-2xl font-medium italic text-gray-800">
+                                    "{dailyVerse.verseText}"
+                                </p>
+                                <footer className="text-md font-semibold text-amber-800">
+                                    — {dailyVerse.reference}
+                                </footer>
+                            </blockquote>
+                        )
+                    )}
+                </div>
             </div>
 
             {/* 2. Main Video Feed */}
-            <div className="main-video-feed">
-                {videosLoading ? (
-                    <p>Loading videos for your feed...</p>
-                ) : (
-                    <Feed searchTerm={searchTerm} videos={videos} /> 
-                )}
-            </div>
+            <Feed searchTerm={searchTerm} /> 
             
         </div>
     );

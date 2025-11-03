@@ -13,28 +13,31 @@ import OfflinePage from './pages/OfflinePage';
 import SongsPage from './pages/SongsPage';
 import KidsPage from './pages/KidsPage';
 import Sidebar from './components/Sidebar'; 
-import './App.css'; // Global CSS for layout
+// NO LONGER NEEDED: import './App.css';
 
 // --- Protected Route Component ---
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  
   if (!user) {
     return <Navigate to="/" />;
   }
-  
   return children;
 };
 
-// --- Global Layout Component ---
+// --- Global Layout Component (Refactored with Tailwind) ---
 const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
     return (
-        // Sidebar-closed class controls the slide-out effect in App.css
-        <div className={`app-layout ${isSidebarOpen ? '' : 'sidebar-closed'}`}>
+        // Replaced 'app-layout'
+        <div className="flex h-screen overflow-hidden bg-white">
             <Sidebar isSidebarOpen={isSidebarOpen} />
-            <div className="main-content-area">
+            
+            {/* Replaced 'main-content-area' */}
+            <div className="flex flex-1 flex-col overflow-hidden">
                 <Header toggleSidebar={toggleSidebar} />
-                <main className="page-content-wrapper">
+                
+                {/* Replaced 'page-content-wrapper' */}
+                {/* This is the main scrolling area with the light gray background */}
+                <main className="flex-1 overflow-y-auto bg-gray-50">
                     {children}
                 </main>
             </div>
@@ -44,7 +47,6 @@ const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
 
 function App() {
   const { loading } = useAuth();
-  // Global state for sidebar open/close status
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
@@ -52,7 +54,12 @@ function App() {
   };
 
   if (loading) {
-    return <p>Loading application...</p>
+    // Let's use Tailwind for a simple loading screen
+    return (
+        <div className="flex h-screen items-center justify-center bg-gray-100">
+            <p className="text-lg font-medium text-gray-700">Loading application...</p>
+        </div>
+    );
   }
 
   return (
@@ -61,7 +68,7 @@ function App() {
         {/* Public Route: Login Page */}
         <Route path="/" element={<LoginPage />} />
         
-        {/* Wildcard Route to apply AppLayout to all protected paths */}
+        {/* Wildcard Route to apply AppLayout */}
         <Route 
           path="*" 
           element={
@@ -78,8 +85,6 @@ function App() {
                   <Route path="/offline" element={<OfflinePage />} />
                   <Route path="/songs" element={<SongsPage />} />
                   <Route path="/kids" element={<KidsPage />} />
-                  
-                  {/* The /profile/:userId route has been removed */}
                   
                   {/* Redirect any unmatched protected route to home */}
                   <Route path="*" element={<Navigate to="/home" />} /> 
