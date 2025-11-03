@@ -14,7 +14,8 @@ const fetchVideosByQuery = (queries) => {
     );
 };
 
-const SuggestedVideos = ({ currentVideo }) => {
+// --- MODIFIED: Component now accepts 'forceCategory' ---
+const SuggestedVideos = ({ currentVideo, forceCategory = null }) => {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,9 @@ const SuggestedVideos = ({ currentVideo }) => {
         const fetchAllSuggestions = async () => {
             setLoading(true);
             
-            // --- This is the new "Smart" Logic ---
+            // --- Logic is UNCHANGED ---
+            // We fetch all related videos regardless of category first,
+            // to respect the priority (creator, tags, etc.)
 
             // 1. Priority 1: Get videos from the SAME CREATOR
             const creatorQuery = [
@@ -49,28 +52,28 @@ const SuggestedVideos = ({ currentVideo }) => {
                 Query.orderDesc('$createdAt')
             ];
 
-            // --- 4. UPDATED: Priority 4 (Fallback) is now MOST POPULAR ---
+            // 4. Priority 4 (Fallback): Most POPULAR
             const popularQuery = [
                 Query.notEqual('$id', currentVideo.$id),
                 Query.limit(10),
-                Query.orderDesc('likeCount') // <-- CHANGED from $createdAt
+                Query.orderDesc('likeCount')
             ];
 
             try {
-                // Run all queries in parallel
+                // Run all queries
                 const [
                     creatorVideos, 
                     tagVideos, 
                     categoryVideos, 
-                    popularVideos // <-- CHANGED from newestVideos
+                    popularVideos
                 ] = await Promise.all([
                     fetchVideosByQuery(creatorQuery),
                     fetchVideosByQuery(tagsQuery),
                     fetchVideosByQuery(categoryQuery),
-                    fetchVideosByQuery(popularQuery) // <-- CHANGED from newestQuery
+                    fetchVideosByQuery(popularQuery)
                 ]);
 
-                // --- Combine results and remove duplicates ---
+                // --- Combine results and remove duplicates (UNCHANGED) ---
                 const videoMap = new Map();
                 
                 const addVideos = (docs) => {
@@ -84,10 +87,22 @@ const SuggestedVideos = ({ currentVideo }) => {
                 addVideos(creatorVideos.documents);
                 addVideos(tagVideos.documents);
                 addVideos(categoryVideos.documents);
-                addVideos(popularVideos.documents); // <-- CHANGED from newestVideos
+                addVideos(popularVideos.documents);
 
-                const finalSuggestions = Array.from(videoMap.values()).slice(0, 15);
-                setVideos(finalSuggestions);
+                // --- THIS IS THE NEW FIX ---
+                let finalSuggestions = Array.from(videoMap.values());
+
+                // If 'forceCategory' is passed (e.g., "songs"),
+                // we filter the final list.
+                // If it's 'null' (the main watch page), this is skipped.
+                if (forceCategory) {
+                    finalSuggestions = finalSuggestions.filter(
+                        video => video.category === forceCategory
+                    );
+                }
+                // --- END OF FIX ---
+
+                setVideos(finalSuggestions.slice(0, 15));
 
             } catch (error) {
                 console.error("Failed to fetch suggested videos:", error);
@@ -96,7 +111,8 @@ const SuggestedVideos = ({ currentVideo }) => {
         };
 
         fetchAllSuggestions();
-    }, [currentVideo]); // Re-fetch if the main video changes
+    // --- MODIFIED: Re-fetch if forceCategory changes ---
+    }, [currentVideo, forceCategory]); 
 
     return (
         <div className="bg-white rounded-lg sticky top-4">
@@ -108,7 +124,11 @@ const SuggestedVideos = ({ currentVideo }) => {
                 )}
 
                 {!loading && videos.length === 0 && (
-                    <p className="text-xs text-neutral-500">No other videos found.</p>
+                    <p className="text-xs text-neutral-500">
+                        {forceCategory 
+                            ? `No other ${forceCategory} found.` 
+                            : "No other videos found."}
+                    </p>
                 )}
 
                 {!loading && videos.map(video => (

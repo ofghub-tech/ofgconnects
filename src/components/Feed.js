@@ -10,22 +10,33 @@ import VideoCard from './VideoCard'; // Import reusable component
 const VIDEOS_PER_PAGE = 12;
 
 const fetchVideos = async ({ pageParam = 0, queryKey }) => {
-    const [, searchTerm] = queryKey;
+    // --- Read 'category' from the queryKey ---
+    const [, searchTerm, category] = queryKey;
     
     let queries = [
-        // --- THIS IS THE NEW LINE ---
-        // This query ensures we ONLY get "general" videos for the main feed
-        Query.equal('category', 'general'), 
-        // --- END NEW LINE ---
         Query.orderDesc('$createdAt'),
         Query.limit(VIDEOS_PER_PAGE),
         Query.offset(pageParam)
     ];
 
+    // --- NEW LOGIC: Add filters ONLY if they exist ---
+
+    // 1. Add category filter (if one is passed)
+    // This will be 'general' on Home, 'songs' on Songs,
+    // and 'null' (skipped) on Search.
+    if (category) {
+        queries.unshift(Query.equal('category', category)); 
+    }
+
+    // 2. Add search filter (if one is passed)
+    // This will be 'null' (skipped) on Home/Songs/Kids,
+    // and will be active on Search.
     if (searchTerm) {
-        // Add search on top of the other queries
+        // Appwrite will search ALL searchable attributes
         queries.unshift(Query.search('title', searchTerm));
     }
+    // --- END NEW LOGIC ---
+
 
     const response = await databases.listDocuments(
         DATABASE_ID,
@@ -36,7 +47,9 @@ const fetchVideos = async ({ pageParam = 0, queryKey }) => {
     return response.documents;
 };
 
-const Feed = ({ searchTerm }) => {
+// --- FIX: Removed the default prop ' = general' ---
+const Feed = ({ searchTerm, category }) => {
+// --- END FIX ---
     const { ref, inView } = useInView();
 
     const {
@@ -48,7 +61,8 @@ const Feed = ({ searchTerm }) => {
         isFetchingNextPage,
         status,
     } = useInfiniteQuery({
-        queryKey: ['videos', searchTerm],
+        // --- Pass 'category' to the queryKey ---
+        queryKey: ['videos', searchTerm, category],
         queryFn: fetchVideos,
         getNextPageParam: (lastPage, allPages) => {
             if (lastPage.length === VIDEOS_PER_PAGE) {
