@@ -5,7 +5,7 @@ import { useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
-import WatchPage from './pages/WatchPage';
+import WatchPage from './pages/WatchPage';          // Standard Watch Page
 import MySpacePage from './pages/MySpacePage';
 import FollowingPage from './pages/FollowingPage';
 import ShortsPage from './pages/ShortsPage';
@@ -18,31 +18,28 @@ import Sidebar from './components/Sidebar';
 import HistoryPage from './pages/HistoryPage';
 import WatchLaterPage from './pages/WatchLaterPage';
 import LikedVideosPage from './pages/LikedVideosPage';
+import ShortsWatchPage from './pages/ShortsWatchPage'; // <-- NEW SHORTS WATCH PAGE
+import VideoRouter from './components/VideoRouter';     // <-- NEW ROUTER COMPONENT
 // --- END NEW PAGE IMPORTS ---
-
-// NO LONGER NEEDED: import './App.css';
 
 // --- Protected Route Component ---
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/" />;
-  }
-  return children;
+    const { user } = useAuth();
+    if (!user) {
+        return <Navigate to="/" />;
+    }
+    return children;
 };
 
 // --- Global Layout Component (Refactored with Tailwind) ---
 const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
     return (
-        // Replaced 'app-layout'
         <div className="flex h-screen overflow-hidden bg-white">
             <Sidebar isSidebarOpen={isSidebarOpen} />
             
-            {/* Replaced 'main-content-area' */}
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Header toggleSidebar={toggleSidebar} />
                 
-                {/* Replaced 'page-content-wrapper' */}
                 {/* This is the main scrolling area with the light gray background */}
                 <main className="flex-1 overflow-y-auto bg-gray-50">
                     {children}
@@ -53,65 +50,71 @@ const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
 };
 
 function App() {
-  const { loading } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const { loading } = useAuth();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(prev => !prev);
-  };
+    const toggleSidebar = () => {
+        setIsSidebarOpen(prev => !prev);
+    };
 
-  if (loading) {
-    // Let's use Tailwind for a simple loading screen
+    if (loading) {
+        // Simple loading screen
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-100">
+                <p className="text-lg font-medium text-gray-700">Loading application...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-screen items-center justify-center bg-gray-100">
-            <p className="text-lg font-medium text-gray-700">Loading application...</p>
-        </div>
-    );
-  }
-
-  return (
-    <Router>
-      <Routes>
-        {/* Public Route: Login Page */}
-        <Route path="/" element={<LoginPage />} />
-        
-        {/* Wildcard Route to apply AppLayout */}
-        <Route 
-          path="*" 
-          element={
-            <ProtectedRoute>
-              <AppLayout isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar}>
+        <Router>
+            <Routes>
+                {/* Public Route: Login Page */}
+                <Route path="/" element={<LoginPage />} />
                 
-                {/* Nested Routes for the main content area */}
-                <Routes>
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/watch/:videoId" element={<WatchPage />} />
-                  <Route path="/myspace" element={<MySpacePage />} />
-                  <Route path="/following" element={<FollowingPage />} />
-                  
-                  {/* --- NEW ROUTES ADDED --- */}
-                  <Route path="/history" element={<HistoryPage />} />
-                  <Route path="/watch-later" element={<WatchLaterPage />} />
-                  <Route path="/liked-videos" element={<LikedVideosPage />} />
-                  {/* --- END NEW ROUTES --- */}
-                  
-                  <Route path="/shorts" element={<ShortsPage />} />
-                  <Route path="/offline" element={<OfflinePage />} />
-                  <Route path="/songs" element={<SongsPage />} />
-                  <Route path="/kids" element={<KidsPage />} />
-                  
-                  {/* Redirect any unmatched protected route to home */}
-                  <Route path="*" element={<Navigate to="/home" />} /> 
-                </Routes>
+                {/* Wildcard Route to apply AppLayout */}
+                <Route 
+                    path="*" 
+                    element={
+                        <ProtectedRoute>
+                            <AppLayout isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar}>
+                                
+                                {/* Nested Routes for the main content area */}
+                                <Routes>
+                                    <Route path="/home" element={<HomePage />} />
+                                    
+                                    {/* --- VIDEO ROUTING LOGIC --- */}
+                                    {/* 1. All clicks (from feed, liked, etc.) hit this route first */}
+                                    <Route path="/watch/:videoId" element={<VideoRouter />} /> 
 
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
+                                    {/* 2. VideoRouter redirects to these specific routes: */}
+                                    <Route path="/videos/watch/:videoId" element={<WatchPage />} />
+                                    <Route path="/shorts/watch/:videoId" element={<ShortsWatchPage />} />
+                                    {/* --- END VIDEO ROUTING LOGIC --- */}
 
-      </Routes>
-    </Router>
-  );
+                                    <Route path="/myspace" element={<MySpacePage />} />
+                                    <Route path="/following" element={<FollowingPage />} />
+                                    <Route path="/history" element={<HistoryPage />} />
+                                    <Route path="/watch-later" element={<WatchLaterPage />} />
+                                    <Route path="/liked-videos" element={<LikedVideosPage />} />
+                                    
+                                    <Route path="/shorts" element={<ShortsPage />} />
+                                    <Route path="/offline" element={<OfflinePage />} />
+                                    <Route path="/songs" element={<SongsPage />} />
+                                    <Route path="/kids" element={<KidsPage />} />
+                                    
+                                    {/* Redirect any unmatched protected route to home */}
+                                    <Route path="*" element={<Navigate to="/home" />} /> 
+                                </Routes>
+
+                            </AppLayout>
+                        </ProtectedRoute>
+                    }
+                />
+
+            </Routes>
+        </Router>
+    );
 }
 
 export default App;

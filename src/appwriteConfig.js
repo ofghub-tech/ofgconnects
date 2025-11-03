@@ -23,6 +23,9 @@ export const COLLECTION_ID_SUBSCRIPTIONS = process.env.REACT_APP_COLLECTION_ID_S
 export const COLLECTION_ID_SHORTS = process.env.REACT_APP_COLLECTION_ID_SHORTS; // ADD THIS LINE
 export const COLLECTION_ID_LIKES = process.env.REACT_APP_COLLECTION_ID_LIKES; // ADD THIS LINE
 export const COLLECTION_ID_VERSES = process.env.REACT_APP_COLLECTION_ID_VERSES;
+export const COLLECTION_ID_HISTORY = process.env.REACT_APP_COLLECTION_ID_HISTORY;
 // // Export the Endpoint and Project ID
 export const ENDPOINT = process.env.REACT_APP_APPWRITE_ENDPOINT;
 export const PROJECT_ID = process.env.REACT_APP_APPWRITE_PROJECT_ID;
+// src/appwriteConfig.js (ADD THIS LINE)
+
