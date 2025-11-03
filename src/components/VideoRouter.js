@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
+import { Query } from 'appwrite'; // <-- IMPORT THIS
 
 const VideoRouter = () => {
     const { videoId } = useParams();
@@ -16,9 +17,12 @@ const VideoRouter = () => {
                     DATABASE_ID,
                     COLLECTION_ID_VIDEOS,
                     videoId,
-                    // Request only the 'category' attribute for efficiency
-                    ['category'] 
+                    // --- THIS IS THE FIX ---
+                    // Use Query.select() to correctly ask for just one field
+                    [Query.select(['category'])]
+                    // --- END FIX ---
                 );
+                
                 // Check for 'shorts' category
                 if (response.category && response.category.toLowerCase() === 'shorts') {
                     setCategory('shorts');

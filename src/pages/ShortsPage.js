@@ -4,27 +4,30 @@ import { useNavigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { 
     DATABASE_ID, 
-    COLLECTION_ID_SHORTS 
+    COLLECTION_ID_VIDEOS // <-- CHANGED: Use the main videos collection
 } from '../appwriteConfig';
 import { Query } from 'appwrite';
-import Modal from '../components/Modal'; // 1. Import the Modal
+// REMOVED: Modal is no longer needed
 import './ShortsPage.css'; 
 
 const ShortsPage = () => {
     const navigate = useNavigate();
     const [shorts, setShorts] = useState([]);
     const [loading, setLoading] = useState(true);
-    // 2. State to hold the currently selected short for the modal player
-    const [selectedShort, setSelectedShort] = useState(null); 
-
+    // REMOVED: Modal state is no longer needed
+    
     useEffect(() => {
         const getShorts = async () => {
             setLoading(true);
             try {
                 const response = await databases.listDocuments(
                     DATABASE_ID,
-                    COLLECTION_ID_SHORTS,
+                    COLLECTION_ID_VIDEOS, // <-- CHANGED: Use main videos collection
                     [
+                        // --- THIS IS THE NEW QUERY ---
+                        // This query ensures we ONLY get "shorts" videos
+                        Query.equal('category', 'shorts'),
+                        // --- END NEW QUERY ---
                         Query.orderDesc('$createdAt')
                     ]
                 );
@@ -38,14 +41,17 @@ const ShortsPage = () => {
         getShorts();
     }, []);
 
-    // Function to handle opening the player modal
-    const openShortsPlayer = (short) => {
-        setSelectedShort(short);
+    // REMOVED: Modal handler functions are no longer needed
+
+    // Helper to safely play video on hover, catching errors
+    const handleMouseOver = (e) => {
+        e.target.play().catch(error => {
+            // Ignore "interrupted" errors if user mouses away quickly
+        });
     };
 
-    // Function to handle closing the player modal
-    const closeShortsPlayer = () => {
-        setSelectedShort(null);
+    const handleMouseOut = (e) => {
+        e.target.pause();
     };
 
     return (
@@ -66,8 +72,9 @@ const ShortsPage = () => {
                         <div 
                             key={short.$id} 
                             className="short-video-card"
-                            // 3. Click now opens the modal player
-                            onClick={() => openShortsPlayer(short)} 
+                            // --- THIS IS THE NAVIGATION FIX ---
+                            // Click now navigates to the VideoRouter
+                            onClick={() => navigate(`/watch/${short.$id}`)} 
                         >
                             <video 
                                 src={short.videoUrl} 
@@ -75,8 +82,8 @@ const ShortsPage = () => {
                                 loop
                                 muted
                                 playsInline
-                                onMouseOver={e => e.target.play()}
-                                onMouseOut={e => e.target.pause()}
+                                onMouseOver={handleMouseOver} // Use safe handler
+                                onMouseOut={handleMouseOut}
                             />
                             <div className="short-video-info">
                                 <span className="short-video-user">{short.username}</span>
@@ -86,31 +93,7 @@ const ShortsPage = () => {
                 </div>
             </div>
 
-            {/* --- 4. The Full-Screen Modal Player --- */}
-            <Modal isOpen={selectedShort !== null} onClose={closeShortsPlayer}>
-                {selectedShort && (
-                    <div className="shorts-player-content">
-                        <div className="shorts-player-video">
-                            {/* The video element that plays the short */}
-                            <video
-                                key={selectedShort.$id} // Key forces video reload when changing shorts
-                                src={selectedShort.videoUrl}
-                                controls
-                                autoPlay
-                                loop
-                                playsInline
-                                className="full-screen-short-video"
-                            />
-                            <div className="shorts-player-overlay">
-                                <span className="shorts-overlay-user">@{selectedShort.username}</span>
-                                {/* We can add like/comment buttons here later */}
-                            </div>
-                        </div>
-                        
-                        {/* You can add a vertical comments section on the right later */}
-                    </div>
-                )}
-            </Modal>
+            {/* REMOVED: The entire Modal component is gone */}
         </>
     );
 };

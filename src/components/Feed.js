@@ -1,12 +1,11 @@
 // src/components/Feed.js
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
-// NO LONGER NEEDED: import './Feed.css';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
+import VideoCard from './VideoCard'; // Import reusable component
 
 const VIDEOS_PER_PAGE = 12;
 
@@ -14,12 +13,17 @@ const fetchVideos = async ({ pageParam = 0, queryKey }) => {
     const [, searchTerm] = queryKey;
     
     let queries = [
+        // --- THIS IS THE NEW LINE ---
+        // This query ensures we ONLY get "general" videos for the main feed
+        Query.equal('category', 'general'), 
+        // --- END NEW LINE ---
         Query.orderDesc('$createdAt'),
         Query.limit(VIDEOS_PER_PAGE),
         Query.offset(pageParam)
     ];
 
     if (searchTerm) {
+        // Add search on top of the other queries
         queries.unshift(Query.search('title', searchTerm));
     }
 
@@ -33,7 +37,6 @@ const fetchVideos = async ({ pageParam = 0, queryKey }) => {
 };
 
 const Feed = ({ searchTerm }) => {
-    const navigate = useNavigate();
     const { ref, inView } = useInView();
 
     const {
@@ -56,10 +59,10 @@ const Feed = ({ searchTerm }) => {
     });
 
     useEffect(() => {
-        if (inView && hasNextPage && !isFetching) { 
+        if (inView && hasNextPage && !isFetchingNextPage) { 
             fetchNextPage();
         }
-    }, [inView, hasNextPage, fetchNextPage, isFetching]); 
+    }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]); 
 
     
     if (status === 'loading') {
@@ -74,11 +77,9 @@ const Feed = ({ searchTerm }) => {
 
     return (
         <>
-            {/* Replaced 'feed-container' */}
             <div className="grid grid-cols-1 gap-x-6 gap-y-8 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 
                 {allVideos.length === 0 && !isFetching && (
-                    // Replaced 'feed-empty-message'
                     <p className="col-span-full py-8 text-center text-lg text-gray-600">
                         {searchTerm 
                             ? `No results found for "${searchTerm}"` 
@@ -89,43 +90,11 @@ const Feed = ({ searchTerm }) => {
                 {data && data.pages.map((page, i) => (
                     <React.Fragment key={i}>
                         {page.map(video => (
-                            // Replaced 'video-card'
-                            <div 
-                                key={video.$id} 
-                                className="group cursor-pointer overflow-hidden rounded-lg bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
-                                onClick={() => navigate(`/watch/${video.$id}`)}
-                            >
-                                {/* Replaced 'video-thumbnail' */}
-                                <div className="relative w-full overflow-hidden bg-gray-200 aspect-video">
-                                    {(typeof video.thumbnailUrl === 'string' && video.thumbnailUrl) ? (
-                                        <img 
-                                            src={video.thumbnailUrl} 
-                                            alt={video.title} 
-                                            className="absolute h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        // Replaced 'video-thumbnail-placeholder'
-                                        <div className="absolute flex h-full w-full items-center justify-center p-4 text-center text-sm text-gray-500">
-                                            <p>Thumbnail for "{video.title}"</p>
-                                        </div>
-                                    )}
-                                </div>
-                                {/* Replaced 'video-info' */}
-                                <div className="p-4">
-                                    <h3 className="truncate text-lg font-semibold text-gray-900" title={video.title}>
-                                        {video.title}
-                                    </h3>
-                                    {/* Replaced 'video-description' */}
-                                    <p className="mt-1 text-sm text-gray-600">
-                                        By: {video.username || '...'}
-                                    </p>
-                                </div>
-                            </div>
+                            <VideoCard key={video.$id} video={video} />
                         ))}
                     </React.Fragment>
                 ))}
 
-                {/* Replaced 'feed-load-more' */}
                 <div className="col-span-full py-6 text-center">
                     <button
                         ref={ref}

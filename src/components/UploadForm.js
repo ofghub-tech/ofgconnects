@@ -1,289 +1,353 @@
 // src/components/UploadForm.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { databases, storage } from '../appwriteConfig';
+import { useAuth } from '../context/AuthContext';
 import { 
     DATABASE_ID, 
-    COLLECTION_ID_VIDEOS, 
-    COLLECTION_ID_SHORTS, 
-    BUCKET_ID_VIDEOS, 
-    BUCKET_ID_THUMBNAILS,
-    ENDPOINT,
-    PROJECT_ID
+    COLLECTION_ID_VIDEOS,
+    BUCKET_ID_VIDEOS,
+    // BUCKET_ID_THUMBNAILS is not strictly needed if BUCKET_ID_VIDEOS is your only bucket
 } from '../appwriteConfig';
 import { ID, Permission, Role } from 'appwrite';
-import { useAuth } from '../context/AuthContext';
-// NO LONGER NEEDED: import './UploadForm.css';
 
-// ★ Renamed prop from 'onUploadSuccess' to 'onCloseModal' to match Header.js
-const UploadForm = ({ onCloseModal }) => {
-    const { user } = useAuth();
-    
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('General'); 
-    const [videoFile, setVideoFile] = useState(null);
-    const [thumbnailFile, setThumbnailFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
+// --- UI ENHANCEMENT: Reusable Spinner Component ---
+const Spinner = () => (
+    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+);
 
-    const [isShort, setIsShort] = useState(false);
-    const [isCheckingVideo, setIsCheckingVideo] = useState(false);
-
-    // --- Tailwind Class Definitions ---
-    // Defined here to keep the JSX clean (DRY principle)
-    
-    // Base classes for text inputs, textareas, and selects
-    const inputBaseClasses = "w-full p-3 rounded border border-gray-600 bg-[#3a3a3a] text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";
-    
-    // Specific classes for file inputs, which are styled differently
-    const fileInputClasses = "w-full rounded border border-gray-600 bg-[#3a3a3a] text-sm text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed file:mr-4 file:py-2 file:px-4 file:rounded-l file:border-0 file:text-sm file:font-semibold file:bg-gray-600 file:text-gray-200 hover:file:bg-gray-500";
-    
-    // --- End of Class Definitions ---
-
-
-    const handleVideoFileChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) {
-            setVideoFile(null);
-            setIsShort(false);
-            return;
-        }
-
-        setVideoFile(file);
-        setIsCheckingVideo(true);
-        setIsShort(false); 
-
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-
-        video.onloadedmetadata = () => {
-            window.URL.revokeObjectURL(video.src);
-            const duration = video.duration;
-            const ratio = video.videoWidth / video.videoHeight;
-
-            if (duration < 90 && ratio > 0.5 && ratio < 0.6) {
-                console.log('Video detected as a Short!');
-                setIsShort(true);
-            } else {
-                console.log('Video detected as a regular video.');
-                setIsShort(false);
-            }
-            setIsCheckingVideo(false);
-        };
-
-        video.onerror = () => {
-            console.error("Error loading video metadata.");
-            setIsCheckingVideo(false);
-        };
-
-        video.src = URL.createObjectURL(file);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (!videoFile) {
-            alert('Please select a video file.');
-            return;
-        }
-        if (!isShort && (!title || !thumbnailFile)) {
-            alert('Please provide a Title and a Thumbnail for your video.');
-            return;
-        }
-
-        setUploading(true);
-
-        try {
-            // --- 1. UPLOAD VIDEO (Common for both) ---
-            const videoFileResponse = await storage.createFile(
-                BUCKET_ID_VIDEOS, 
-                ID.unique(),
-                videoFile,
-                [Permission.read(Role.any())]
-            );
-            const videoFileId = videoFileResponse.$id;
-            const videoUrlString = `${ENDPOINT}/storage/buckets/${BUCKET_ID_VIDEOS}/files/${videoFileId}/view?project=${PROJECT_ID}`;
-
-            let collectionId;
-            let payload;
-
-            if (isShort) {
-                // --- UPLOAD AS SHORT ---
-                collectionId = COLLECTION_ID_SHORTS;
-                payload = {
-                    videoUrl: videoUrlString,
-                    userId: user.$id,
-                    username: user.name,
-                    likeCount: 0
-                };
-            } else {
-                // --- UPLOAD AS REGULAR VIDEO ---
-                // Upload thumbnail
-                const thumbnailFileResponse = await storage.createFile(
-                    BUCKET_ID_THUMBNAILS,
-                    ID.unique(),
-                    thumbnailFile,
-                    [Permission.read(Role.any())]
-                );
-                const thumbnailFileId = thumbnailFileResponse.$id;
-                const thumbnailUrlString = `${ENDPOINT}/storage/buckets/${BUCKET_ID_THUMBNAILS}/files/${thumbnailFileId}/view?project=${PROJECT_ID}`;
-
-                collectionId = COLLECTION_ID_VIDEOS;
-                payload = {
-                    title: title,
-                    description: description || null, 
-                    category: category,
-                    videoUrl: videoUrlString,
-                    thumbnailUrl: thumbnailUrlString,
-                    likeCount: 0,           
-                    commentCount: 0,
-                    userId: user.$id,
-                    username: user.name
-                };
-            }
-
-            // --- 3. CREATE THE DOCUMENT ---
-            await databases.createDocument(
-                DATABASE_ID,
-                collectionId,
-                ID.unique(),
-                payload,
-                [Permission.read(Role.any())]
-            );
-
-            alert(`Video ${isShort ? 'Short' : ''} uploaded successfully!`);
-            
-            // ★ Use the correct prop to close the modal
-            if (onCloseModal) {
-                onCloseModal();
-            }
-            
-            // Reset form
-            setTitle('');
-            setDescription('');
-            setCategory('General');
-            setVideoFile(null);
-            setThumbnailFile(null);
-            setIsShort(false);
-            e.target.reset();
-
-        } catch (error) {
-            console.error('Upload failed:', error);
-            alert(`Upload failed: ${error.message}`);
-        } finally {
-            setUploading(false);
-        }
-    };
+// --- UI ENHANCEMENT: Reusable Alert Component ---
+const Alert = ({ type, message }) => {
+    const isError = type === 'error';
+    const bgColor = isError ? 'bg-red-100' : 'bg-green-100';
+    const borderColor = isError ? 'border-red-400' : 'border-green-400';
+    const textColor = isError ? 'text-red-700' : 'text-green-700';
+    const icon = isError ? (
+        <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+    ) : (
+        <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+    );
 
     return (
-        // .upload-form
-        <form onSubmit={handleSubmit} className="w-full">
-            
-            {/* .upload-form h3 */}
-            <h3 className="text-center mb-6 text-2xl font-semibold text-white">
-                Upload a New Video
-            </h3>
-            
-            {/* Title, Description, and Category are only for regular videos */}
-            {!isShort && (
-                <>
-                    {/* .form-group */}
-                    <div className="mb-4">
-                        {/* .form-group label */}
-                        <label className="block mb-2 text-sm font-semibold text-gray-400">
-                            Title (required)
-                        </label>
-                        <input 
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            disabled={uploading || isCheckingVideo}
-                            className={inputBaseClasses}
-                        />
-                    </div>
-                    
-                    {/* .form-group */}
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-semibold text-gray-400">
-                            Category
-                        </label>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            disabled={uploading || isCheckingVideo}
-                            className={inputBaseClasses}
-                        >
-                            <option value="General">General</option>
-                            <option value="Songs">Songs</option>
-                            <option value="Kids">Kids</option>
-                        </select>
-                    </div>
-
-                    {/* .form-group */}
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-semibold text-gray-400">
-                            Description
-                        </label>
-                        {/* .form-group textarea */}
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            disabled={uploading || isCheckingVideo}
-                            className={`${inputBaseClasses} min-h-[100px] resize-y`}
-                        />
-                    </div>
-                    
-                    {/* .form-group */}
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-semibold text-gray-400">
-                            Thumbnail (Image, required)
-                        </label>
-                        <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setThumbnailFile(e.target.files[0])}
-                            disabled={uploading || isCheckingVideo}
-                            className={fileInputClasses} // .file-input
-                        />
-                    </div>
-                </>
-            )}
-
-            {/* .form-group */}
-            <div className="mb-4">
-                <label className="block mb-2 text-sm font-semibold text-gray-400">
-                    Video File (required)
-                </label>
-                <input 
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoFileChange}
-                    disabled={uploading || isCheckingVideo}
-                    className={fileInputClasses} // .file-input
-                />
+        <div className={`border ${borderColor} ${bgColor} ${textColor} px-4 py-3 rounded-md relative`} role="alert">
+            <div className="flex">
+                <div className="py-1">{icon}</div>
+                <div className="ml-3">
+                    <span className="block sm:inline">{message}</span>
+                </div>
             </div>
-            
-            {isCheckingVideo && (
-                <p className="my-2 text-sm italic text-gray-400">
-                    Checking video properties...
-                </p>
-            )}
-            
-            {isShort && !isCheckingVideo && (
-                // Inline style converted to Tailwind
-                <p className="my-2 text-sm font-bold text-[#4CAF50]">
-                    This video will be uploaded as a Short.
-                </p>
-            )}
+        </div>
+    );
+};
 
-            {/* .submit-btn (New Tailwind styles) */}
-            <button 
-                type="submit" 
-                className="w-full p-3 mt-4 text-lg font-semibold text-white bg-blue-600 rounded transition-colors hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed" 
-                disabled={uploading || isCheckingVideo}
-            >
-                {uploading ? 'Uploading...' : 'Upload'}
-            </button>
-        </form>
+// --- Reusable Input Component ---
+const FormInput = ({ id, label, type = "text", value, onChange, required = false, ...props }) => (
+    <div className="mb-4">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+            {label}
+        </label>
+        <input
+            type={type}
+            id={id}
+            value={value}
+            onChange={onChange}
+            required={required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            {...props}
+        />
+    </div>
+);
+
+// --- Reusable Textarea Component ---
+const FormTextarea = ({ id, label, value, onChange }) => (
+    <div className="mb-4">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+            {label}
+        </label>
+        <textarea
+            id={id}
+            value={value}
+            onChange={onChange}
+            rows="4"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+    </div>
+);
+
+// --- UI ENHANCEMENT: Improved File Input Component ---
+const FormFileInput = ({ id, label, onChange, required = false, accept, file, clearFile }) => {
+    return (
+        <div className="mb-4">
+            <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+                {label} { !required && <span className="text-gray-500 text-xs">(Optional)</span> }
+            </label>
+            {file ? (
+                <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                    <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                    <button
+                        type="button"
+                        onClick={clearFile}
+                        className="ml-2 text-red-600 hover:text-red-800 font-medium"
+                    >
+                        &times;
+                    </button>
+                </div>
+            ) : (
+                <input
+                    type="file"
+                    id={id}
+                    onChange={onChange}
+                    required={required}
+                    accept={accept}
+                    className="block w-full text-sm text-gray-500
+                                 file:mr-4 file:py-2 file:px-4
+                                 file:rounded-full file:border-0
+                                 file:text-sm file:font-semibold
+                                 file:bg-blue-50 file:text-blue-700
+                                 hover:file:bg-blue-100"
+                />
+            )}
+        </div>
+    );
+};
+
+// --- Reusable Select Component ---
+const FormSelect = ({ id, label, value, onChange, children }) => (
+    <div className="mb-6">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+            {label}
+        </label>
+        <select
+            id={id}
+            value={value}
+            onChange={onChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+            {children}
+        </select>
+    </div>
+);
+
+
+const UploadForm = () => {
+    const { user } = useAuth();
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [videoFile, setVideoFile] = useState(null);
+    const [thumbnailFile, setThumbnailFile] = useState(null);
+    const [category, setCategory] = useState('general');
+    
+    const [thumbnailPreview, setThumbnailPreview] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+
+    useEffect(() => {
+        if (!thumbnailFile) {
+            setThumbnailPreview(null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(thumbnailFile);
+        setThumbnailPreview(objectUrl);
+
+        // Cleanup function to revoke the object URL
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [thumbnailFile]);
+
+    const resetForm = () => {
+        setTitle('');
+        setDescription('');
+        setVideoFile(null);
+        setThumbnailFile(null);
+        setThumbnailPreview(null); // Clear preview
+        setCategory('general');
+    };
+
+    const clearVideoFile = () => setVideoFile(null);
+    const clearThumbnailFile = () => setThumbnailFile(null);
+
+
+    // ===================================================================
+    // --- FINAL 'handleSubmit' FUNCTION (Schema aligned) ---
+    // ===================================================================
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!title || !videoFile || !user) {
+            setError('Please fill out all required fields (Title and Video File).');
+            return;
+        }
+
+        setIsUploading(true);
+        setError(null);
+        setSuccess(null);
+
+        let thumbnailUrl = null;
+        let thumbnailFileId = null; 
+
+        try {
+            // --- 1. Generate a unique ID for the VIDEO and the DOCUMENT ---
+            const newVideoId = ID.unique();
+
+            // --- 2. Upload Video File ---
+            const videoUpload = await storage.createFile(
+                BUCKET_ID_VIDEOS,
+                newVideoId, // The video's unique ID
+                videoFile,
+                [
+                    Permission.read(Role.any()) 
+                ]
+            );
+            const videoUrl = storage.getFileView(videoUpload.bucketId, videoUpload.$id);
+
+            // --- 3. OPTIONALLY Upload Thumbnail File ---
+            if (thumbnailFile) {
+                const newThumbnailId = ID.unique();
+                thumbnailFileId = newThumbnailId; // Store this ID
+
+                await storage.createFile(
+                    BUCKET_ID_VIDEOS, // Using the SAME bucket
+                    newThumbnailId, // Using the SEPARATE thumbnail ID
+                    thumbnailFile,
+                    [
+                        Permission.read(Role.any())
+                    ]
+                );
+                // Get file view using the storage service directly
+                thumbnailUrl = storage.getFileView(BUCKET_ID_VIDEOS, newThumbnailId);
+            }
+
+            // --- 4. Create Database Document ---
+            await databases.createDocument(
+                DATABASE_ID,
+                COLLECTION_ID_VIDEOS,
+                newVideoId, // Use the video's ID as the document ID
+                {
+                    // Fields matching your Appwrite schema:
+                    videoUrl: videoUrl.href,
+                    title: title,
+                    description: description,
+                    thumbnailUrl: thumbnailUrl ? thumbnailUrl.href : null,
+                    userId: user.$id, // MATCHES SCHEMA
+                    username: user.name,
+                    category: category,
+                    
+                    // FIX: 'likeCount' is REQUIRED in your schema, sending default 0
+                    likeCount: 0, 
+                    
+                    // FIX: 'commentCount' is REQUIRED in your schema, sending default 0
+                    commentCount: 0,
+                    
+                    // Recommended fields for future management (MUST BE ADDED TO SCHEMA)
+                    videoFileId: newVideoId,
+                    thumbnailFileId: thumbnailFileId 
+                }
+            );
+
+            setSuccess('Upload successful! Your video is now live.');
+            resetForm();
+            
+        } catch (err) {
+            console.error('Upload failed:', err);
+            // Log the Appwrite error object for full details
+            setError(`Upload failed: ${err.message || 'Something went wrong. Please check your Appwrite configuration.'}`);
+        }
+        setIsUploading(false);
+    };
+    // ===================================================================
+    // --- END OF UPDATED FUNCTION ---
+    // ===================================================================
+
+
+    return (
+        <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-xl my-10">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Your Video</h2>
+            
+            <form onSubmit={handleSubmit}>
+                
+                {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
+                {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
+
+                <FormInput
+                    id="title"
+                    label="Video Title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required={true}
+                />
+
+                <FormTextarea
+                    id="description"
+                    label="Description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                />
+
+                <FormFileInput
+                    id="videoFile"
+                    label="Video File"
+                    onChange={(e) => setVideoFile(e.target.files[0])}
+                    required={true}
+                    accept="video/mp4,video/webm"
+                    file={videoFile} 
+                    clearFile={clearVideoFile} 
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormFileInput
+                        id="thumbnailFile"
+                        label="Thumbnail Image" 
+                        onChange={(e) => setThumbnailFile(e.target.files[0])} 
+                        required={false}
+                        accept="image/png,image/jpeg,image/webp"
+                        file={thumbnailFile} 
+                        clearFile={clearThumbnailFile}
+                    />
+                    
+                    {/* --- Thumbnail Preview --- */}
+                    {thumbnailPreview ? (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+                            <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-auto rounded-md border border-gray-300" />
+                        </div>
+                    ) : (
+                          <div>
+                            {/* FIX: Corrected typo */}
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+                            <div className="flex items-center justify-center w-full h-[125px] border-2 border-gray-300 border-dashed rounded-md bg-gray-50">
+                                <span className="text-gray-400">No thumbnail</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+
+                <FormSelect
+                    id="category"
+                    label="Category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                >
+                    <option value="general">General Video</option>
+                    <option value="shorts">Short Video</option>
+                </FormSelect> 
+                {/* FIX: Removed stray typo */}
+
+
+                <button 
+                    type="submit" 
+                    disabled={isUploading}
+                    className="w-full flex items-center justify-center py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm
+                                 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                                 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
+                >
+                    {isUploading && <Spinner />}
+                    {isUploading ? 'Uploading...' : 'Upload Video'}
+                </button>
+            </form>
+        </div>
     );
 };
 
