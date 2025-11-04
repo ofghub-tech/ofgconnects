@@ -115,16 +115,20 @@ const SuggestedVideos = ({ currentVideo, forceCategory = null }) => {
     }, [currentVideo, forceCategory]); 
 
     return (
-        <div className="bg-white rounded-lg sticky top-4">
-            <h3 className="text-lg font-semibold mb-4 text-neutral-800">Next Up</h3>
+        // --- MODIFIED: Added dark mode classes ---
+        <div className="bg-white rounded-lg sticky top-4 dark:bg-gray-900">
+            {/* --- MODIFIED: Added dark mode classes --- */}
+            <h3 className="text-lg font-semibold mb-4 text-neutral-800 dark:text-gray-100">Next Up</h3>
             
             <div className="flex flex-col gap-3">
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 {loading && (
-                    <p className="text-xs text-neutral-500">Loading videos...</p>
+                    <p className="text-xs text-neutral-500 dark:text-gray-400">Loading videos...</p>
                 )}
 
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 {!loading && videos.length === 0 && (
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-neutral-500 dark:text-gray-400">
                         {forceCategory 
                             ? `No other ${forceCategory} found.` 
                             : "No other videos found."}

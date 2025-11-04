@@ -10,7 +10,8 @@ const WATCH_LATER_KEY = 'ofg_watch_later_list';
 
 // --- Icon Component (Kept for empty state) ---
 const BookmarkIcon = (props) => (
-    <svg {...props} className="h-16 w-16 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    // --- MODIFIED: Added dark mode class ---
+    <svg {...props} className="h-16 w-16 text-gray-400 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
     </svg>
 );
@@ -66,8 +67,9 @@ const WatchLaterPage = () => {
     // 1. Loading State
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50">
-                <p className="text-lg text-gray-600">Loading your saved videos...</p>
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 dark:bg-gray-900">
+                <p className="text-lg text-gray-600 dark:text-gray-400">Loading your saved videos...</p>
             </div>
         );
     }
@@ -75,12 +77,13 @@ const WatchLaterPage = () => {
     // 2. Empty State (Uses the original content)
     if (videos.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center">
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center dark:bg-gray-900">
                 <BookmarkIcon />
-                <h1 className="mt-4 text-2xl font-semibold text-gray-800">
+                <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">
                     Watch Later
                 </h1>
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
                     Save videos to watch later and they'll show up here.
                 </p>
                 {savedIds.length > 0 && (
@@ -95,16 +98,20 @@ const WatchLaterPage = () => {
 
     // 3. Content Display State
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full">
+        // --- MODIFIED: Added dark mode classes ---
+        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full dark:bg-gray-900">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Watch Later</h1>
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Watch Later</h1>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {videos.map((video) => (
                         <Link to={`/watch/${video.$id}`} key={video.$id} className="group block">
-                            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 group-hover:shadow-xl">
+                            {/* --- MODIFIED: Added dark mode classes --- */}
+                            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 group-hover:shadow-xl dark:bg-gray-800">
                                 {/* Thumbnail */}
-                                <div className="w-full aspect-video bg-gray-200 overflow-hidden">
+                                {/* --- MODIFIED: Added dark mode classes --- */}
+                                <div className="w-full aspect-video bg-gray-200 overflow-hidden dark:bg-gray-700">
                                     <img 
                                         src={video.thumbnailUrl} 
                                         alt={video.title} 
@@ -113,10 +120,12 @@ const WatchLaterPage = () => {
                                 </div>
                                 {/* Details */}
                                 <div className="p-3">
-                                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600">
+                                    {/* --- MODIFIED: Added dark mode classes --- */}
+                                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
                                         {video.title}
                                     </h3>
-                                    <p className="text-sm text-gray-600 mt-1">{video.username}</p>
+                                    {/* --- MODIFIED: Added dark mode classes --- */}
+                                    <p className="text-sm text-gray-600 mt-1 dark:text-gray-400">{video.username}</p>
                                 </div>
                             </div>
                         </Link>

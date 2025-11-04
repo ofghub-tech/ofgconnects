@@ -8,6 +8,8 @@ import { Link } from 'react-router-dom';
 
 // --- Icon Component (Heart for Liked Videos) ---
 const HeartIcon = (props) => (
+    // --- MODIFIED: Added dark mode class (though red-500 is fine, added gray-500 as a fallback if needed) ---
+    // Kept text-red-500 as it looks good on both modes.
     <svg {...props} className="h-16 w-16 text-red-500" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 21.35l-1.44-1.32C4.59 14.28 1 10.15 1 5.5 1 2.44 3.44 0 6.5 0c1.86 0 3.63.85 4.75 2.21L12 3.75l.75-1.54C14.37.85 16.14 0 18.5 0 21.56 0 24 2.44 24 5.5c0 4.65-3.59 8.78-9.56 14.53L12 21.35z"/>
     </svg>
@@ -78,17 +80,19 @@ const LikedVideosPage = () => {
     // --- RENDER FUNCTIONS ---
     if (!user) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center">
-                <h1 className="mt-4 text-2xl font-semibold text-gray-800">Please Log In</h1>
-                <p className="mt-2 text-gray-600">You must be logged in to view your liked videos.</p>
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center dark:bg-gray-900">
+                <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">Please Log In</h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">You must be logged in to view your liked videos.</p>
             </div>
         );
     }
     
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50">
-                <p className="text-lg text-gray-600">Finding your favorite videos...</p>
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 dark:bg-gray-900">
+                <p className="text-lg text-gray-600 dark:text-gray-400">Finding your favorite videos...</p>
             </div>
         );
     }
@@ -96,12 +100,13 @@ const LikedVideosPage = () => {
     // Empty State
     if (videos.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center">
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center dark:bg-gray-900">
                 <HeartIcon />
-                <h1 className="mt-4 text-2xl font-semibold text-gray-800">
+                <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">
                     Liked Videos
                 </h1>
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
                     Videos you like will show up here. Go find your next favorite!
                 </p>
             </div>
@@ -111,16 +116,20 @@ const LikedVideosPage = () => {
 
     // Content Display State
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full">
+        // --- MODIFIED: Added dark mode classes ---
+        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full dark:bg-gray-900">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Liked Videos ({videos.length})</h1>
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Liked Videos ({videos.length})</h1>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {videos.map((video) => (
                         <Link to={`/watch/${video.$id}`} key={video.$id} className="group block">
-                            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 group-hover:shadow-xl">
+                            {/* --- MODIFIED: Added dark mode classes --- */}
+                            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 group-hover:shadow-xl dark:bg-gray-800">
                                 {/* Thumbnail */}
-                                <div className="w-full aspect-video bg-gray-200 overflow-hidden">
+                                {/* --- MODIFIED: Added dark mode classes --- */}
+                                <div className="w-full aspect-video bg-gray-200 overflow-hidden dark:bg-gray-700">
                                     <img 
                                         src={video.thumbnailUrl} 
                                         alt={video.title} 
@@ -129,10 +138,12 @@ const LikedVideosPage = () => {
                                 </div>
                                 {/* Details */}
                                 <div className="p-3">
-                                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600">
+                                    {/* --- MODIFIED: Added dark mode classes --- */}
+                                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
                                         {video.title}
                                     </h3>
-                                    <p className="text-sm text-gray-600 mt-1">{video.username}</p>
+                                    {/* --- MODIFIED: Added dark mode classes --- */}
+                                    <p className="text-sm text-gray-600 mt-1 dark:text-gray-400">{video.username}</p>
                                 </div>
                             </div>
                         </Link>

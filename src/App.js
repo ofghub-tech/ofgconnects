@@ -9,7 +9,7 @@ import WatchPage from './pages/WatchPage';
 import MySpacePage from './pages/MySpacePage';
 import FollowingPage from './pages/FollowingPage';
 import ShortsPage from './pages/ShortsPage';
-import OfflinePage from './pages/OfflinePage';
+// import OfflinePage from './pages/OfflinePage'; // <-- REMOVED
 import SongsPage from './pages/SongsPage';
 import KidsPage from './pages/KidsPage';
 import Sidebar from './components/Sidebar'; 
@@ -23,6 +23,7 @@ import KidsWatchPage from './pages/KidsWatchPage';
 
 // --- NEW PAGE IMPORT ---
 import SearchPage from './pages/SearchPage';
+import SettingsPage from './pages/SettingsPage'; // <-- ADD THIS
 // --- END NEW PAGE IMPORT ---
 
 // --- (ProtectedRoute and AppLayout components - No change) ---
@@ -36,11 +37,15 @@ const ProtectedRoute = ({ children }) => {
 };
 const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
     return (
-        <div className="flex h-screen overflow-hidden bg-white">
-            <Sidebar isSidebarOpen={isSidebarOpen} />
+        // Added dark:bg-gray-900
+        <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-900">
+            <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Header toggleSidebar={toggleSidebar} />
-                <main className="flex-1 overflow-y-auto bg-gray-50">
+                {/* --- THIS IS THE CHANGE --- */}
+                {/* Added dark:bg-gray-950 */}
+                <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-950">
+                {/* --- END CHANGE --- */}
                     {children}
                 </main>
             </div>
@@ -59,8 +64,9 @@ function App() {
 
     if (loading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-gray-100">
-                <p className="text-lg font-medium text-gray-700">Loading application...</p>
+            // Added dark:bg-gray-950 and dark:text-gray-300
+            <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
+                <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Loading application...</p>
             </div>
         );
     }
@@ -100,9 +106,13 @@ function App() {
                                     <Route path="/watch-later" element={<WatchLaterPage />} />
                                     <Route path="/liked-videos" element={<LikedVideosPage />} />
                                     <Route path="/shorts" element={<ShortsPage />} />
-                                    <Route path="/offline" element={<OfflinePage />} />
+                                    {/* <Route path="/offline" element={<OfflinePage />} /> */}{/* <-- REMOVED */}
                                     <Route path="/songs" element={<SongsPage />} />
                                     <Route path="/kids" element={<KidsPage />} />
+
+                                    {/* --- NEW SETTINGS ROUTE --- */}
+                                    <Route path="/settings" element={<SettingsPage />} />
+                                    {/* --- END NEW SETTINGS ROUTE --- */}
                                     
                                     <Route path="*" element={<Navigate to="/home" />} /> 
                                 </Routes>

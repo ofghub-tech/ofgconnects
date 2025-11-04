@@ -121,30 +121,35 @@ const KidsWatchPage = () => { // <-- Renamed component
     }, [videoId, navigate, user]);
     // --- (End useEffect) ---
 
-    // --- (CSS classes and Loading/Not Found states - No change) ---
+    // --- (CSS classes and Loading/Not Found states - MODIFIED for dark mode) ---
+    // --- MODIFIED: Added dark mode classes ---
     const actionButtonClasses = `
         flex items-center justify-center gap-2
         py-2 px-4 h-9 rounded-full 
         font-medium text-sm text-neutral-800
         bg-gray-100 hover:bg-gray-200
+        dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600
         transition-colors duration-200 ease-in-out
         whitespace-nowrap
     `;
+    // --- MODIFIED: Added dark mode classes ---
     const saveButtonClasses = `
         ${actionButtonClasses}
-        ${isSaved ? 'bg-gray-200 font-semibold' : ''}
+        ${isSaved ? 'bg-gray-200 font-semibold dark:bg-gray-600' : ''}
     `;
 
     if (loading) {
         return (
-            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white">
-                <p className="text-xl text-neutral-500">Loading video...</p>
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
+                <p className="text-xl text-neutral-500 dark:text-gray-400">Loading video...</p>
             </div>
         );
     }
     if (!video) {
         return (
-            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white">
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
                 <p className="text-xl text-red-600">Video not found or failed to load.</p>
             </div>
         );
@@ -154,7 +159,8 @@ const KidsWatchPage = () => { // <-- Renamed component
 
     // --- Render Watch Page ---
     return (
-        <div className="w-full bg-white text-neutral-900 font-sans p-4 sm:p-6 lg:p-8">
+        // --- MODIFIED: Added dark mode classes ---
+        <div className="w-full bg-white text-neutral-900 font-sans p-4 sm:p-6 lg:p-8 dark:bg-gray-900 dark:text-gray-100">
             <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-3 lg:gap-x-6 gap-y-6">
 
                 {/* --- 1. Main Content (Left Column) - No change --- */}
@@ -171,7 +177,8 @@ const KidsWatchPage = () => { // <-- Renamed component
                         </video>
                     </div>
 
-                    <h1 className="mb-3 text-xl sm:text-2xl font-bold text-gray-900">
+                    {/* --- MODIFIED: Added dark mode class --- */}
+                    <h1 className="mb-3 text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {video.title}
                     </h1>
 
@@ -182,7 +189,8 @@ const KidsWatchPage = () => { // <-- Renamed component
                                 <div className="w-10 h-10 bg-blue-600 rounded-full flex justify-center items-center text-xl font-bold text-white shrink-0">
                                     {video.username.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-base font-semibold text-neutral-800">
+                                {/* --- MODIFIED: Added dark mode class --- */}
+                                <span className="text-base font-semibold text-neutral-800 dark:text-gray-200">
                                     {video.username}
                                 </span>
                                 <FollowButton creatorId={video.userId} creatorName={video.username} />
@@ -206,13 +214,15 @@ const KidsWatchPage = () => { // <-- Renamed component
                         </div>
                     )}
                     
-                    <div className="mt-4 p-4 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg cursor-pointer">
-                        <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
+                    {/* --- MODIFIED: Added dark mode classes --- */}
+                    <div className="mt-4 p-4 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700">
+                        <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap dark:text-gray-300">
                             {video.description || 'No description provided.'}
                         </p>
                     </div>
                     
-                    <hr className="border-t border-gray-200 my-6" />
+                    {/* --- MODIFIED: Added dark mode class --- */}
+                    <hr className="border-t border-gray-200 my-6 dark:border-gray-700" />
 
                     <Comments videoId={videoId} />
 

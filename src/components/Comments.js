@@ -69,9 +69,11 @@ const Comments = ({ videoId }) => {
     };
 
     return (
-        <div className="w-full text-neutral-900">
+        // --- MODIFIED: Added dark mode text ---
+        <div className="w-full text-neutral-900 dark:text-gray-100">
             
-            <h3 className="mb-4 text-xl font-semibold">
+            {/* --- MODIFIED: Added dark mode text --- */}
+            <h3 className="mb-4 text-xl font-semibold dark:text-gray-100">
                 {comments.length} Comments
             </h3>
             
@@ -82,7 +84,7 @@ const Comments = ({ videoId }) => {
                         {user.name.charAt(0).toUpperCase()}
                     </div>
 
-                    {/* --- UPDATED: Light theme textarea --- */}
+                    {/* --- UPDATED: Added dark mode classes --- */}
                     <textarea
                         value={commentBody}
                         onChange={(e) => setCommentBody(e.target.value)}
@@ -94,10 +96,12 @@ const Comments = ({ videoId }) => {
                             border border-gray-300 rounded-lg
                             focus:outline-none focus:ring-2 focus:ring-blue-500
                             resize-y
+                            dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400
+                            dark:border-gray-600
                         "
                     />
                     
-                    {/* --- Green button --- */}
+                    {/* --- Green button (looks fine on dark mode) --- */}
                     <button 
                         type="submit"
                         disabled={!commentBody.trim()}
@@ -114,20 +118,23 @@ const Comments = ({ videoId }) => {
                     </button>
                 </form>
             ) : (
-                <p className="mb-8 text-neutral-600">
-                    Please <a href="/login" className="text-blue-500 hover:underline">log in</a> to post a comment.
+                // --- MODIFIED: Added dark mode classes ---
+                <p className="mb-8 text-neutral-600 dark:text-gray-400">
+                    Please <a href="/login" className="text-blue-500 hover:underline dark:text-blue-400">log in</a> to post a comment.
                 </p>
             )}
 
 
             {/* --- Light theme comment list --- */}
             <div className="flex flex-col gap-6">
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 {loading && (
-                    <p className="text-neutral-500">Loading comments...</p>
+                    <p className="text-neutral-500 dark:text-gray-400">Loading comments...</p>
                 )}
                 
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 {!loading && comments.length === 0 && (
-                    <p className="text-neutral-600">No comments yet.</p>
+                    <p className="text-neutral-600 dark:text-gray-400">No comments yet.</p>
                 )}
                 
                 {!loading && comments.map(comment => (
@@ -136,10 +143,12 @@ const Comments = ({ videoId }) => {
                             {comment.username ? comment.username.charAt(0).toUpperCase() : 'A'}
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-semibold text-sm text-neutral-800">
+                            {/* --- MODIFIED: Added dark mode classes --- */}
+                            <span className="font-semibold text-sm text-neutral-800 dark:text-gray-300">
                                 @{comment.username || 'Anonymous'}
                             </span>
-                            <p className="text-base text-neutral-900 mt-1 whitespace-pre-wrap">
+                            {/* --- MODIFIED: Added dark mode classes --- */}
+                            <p className="text-base text-neutral-900 mt-1 whitespace-pre-wrap dark:text-gray-100">
                                 {comment.content}
                             </p>
                         </div>

@@ -95,7 +95,7 @@ const FollowButton = ({ creatorId, creatorName }) => {
         }
     };
 
-    // --- UPDATED Tailwind Classes (per your screenshot) ---
+    // --- UPDATED Tailwind Classes (with dark mode) ---
     const followButtonClasses = `
         flex items-center justify-center
         py-2 px-4 h-9 rounded-full 
@@ -103,8 +103,10 @@ const FollowButton = ({ creatorId, creatorName }) => {
         transition-colors duration-200 ease-in-out
         disabled:opacity-50 disabled:cursor-not-allowed
         ${isFollowing 
-            ? 'bg-gray-100 text-neutral-800 hover:bg-gray-200'  // Following state (light gray)
-            : 'bg-neutral-900 text-white hover:bg-neutral-700' // Default state (solid black)
+            // Following state (light gray)
+            ? 'bg-gray-100 text-neutral-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600' 
+            // Default state (solid black)
+            : 'bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300'
         }
     `;
 

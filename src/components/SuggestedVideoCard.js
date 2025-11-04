@@ -14,10 +14,12 @@ const SuggestedVideoCard = ({ video }) => {
     return (
         <Link 
             to={`/watch/${video.$id}`} 
-            className="flex gap-3 cursor-pointer group w-full"
+            // --- MODIFIED: Added dark mode hover ---
+            className="flex gap-3 cursor-pointer group w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
         >
             {/* Thumbnail */}
-            <div className="w-40 h-24 bg-gray-200 rounded-lg shrink-0 overflow-hidden relative">
+            {/* --- MODIFIED: Added dark mode class --- */}
+            <div className="w-40 h-24 bg-gray-200 rounded-lg shrink-0 overflow-hidden relative dark:bg-gray-700">
                 <img 
                     src={video.thumbnailUrl} // <-- Make sure you have this field in Appwrite
                     alt={video.title} 
@@ -28,10 +30,12 @@ const SuggestedVideoCard = ({ video }) => {
 
             {/* Video Details */}
             <div className="flex flex-col flex-1 min-w-0">
-                <h4 className="font-semibold text-sm text-neutral-800 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <h4 className="font-semibold text-sm text-neutral-800 line-clamp-2 group-hover:text-blue-600 transition-colors dark:text-gray-100 dark:group-hover:text-blue-400">
                     {video.title}
                 </h4>
-                <p className="text-xs text-neutral-500 mt-1 truncate">
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <p className="text-xs text-neutral-500 mt-1 truncate dark:text-gray-400">
                     {video.username}
                 </p>
                 {/* You can add view count here later if you track it:

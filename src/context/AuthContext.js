@@ -1,13 +1,45 @@
 // src/context/AuthContext.js
 import { createContext, useState, useEffect, useContext } from 'react';
 import { account } from '../appwriteConfig';
-import { ID } from 'appwrite'; // Make sure ID is imported
+import { ID } from 'appwrite';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    
+    // --- NEW THEME STATE ---
+    // 1. Get theme from localStorage or default to 'system'
+    const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
+
+    // --- NEW THEME EFFECT ---
+    // 2. Effect to apply theme class to <html> tag
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const isDark =
+            theme === 'dark' ||
+            (theme === 'system' &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        root.classList.toggle('dark', isDark);
+        
+        // 3. Save choice to localStorage
+        localStorage.setItem('theme', theme);
+
+        // Optional: Listen for system theme changes
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => {
+            if (theme === 'system') {
+                root.classList.toggle('dark', mediaQuery.matches);
+            }
+        };
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+        
+    }, [theme]);
+    // --- END NEW THEME LOGIC ---
+
 
     useEffect(() => {
         checkUserStatus();
@@ -68,6 +100,41 @@ export const AuthProvider = ({ children }) => {
             alert(`Google login failed: ${error.message}`);
         }
     };
+    
+    // --- NEW FUNCTIONS ---
+    
+    /**
+     * Updates the currently logged-in user's name.
+     * @param {string} newName The new name for the user.
+     */
+    const updateUserName = async (newName) => {
+        if (!newName) throw new Error("Name cannot be empty");
+        try {
+            await account.updateName(newName);
+            // Refresh user state to reflect the change
+            await checkUserStatus(); 
+        } catch (error) {
+            console.error("Failed to update name:", error);
+            throw error;
+        }
+    };
+
+    /**
+     * Updates the currently logged-in user's password.
+     * @param {string} newPassword The new password.
+     * @param {string} oldPassword The user's current password.
+     */
+    const updateUserPassword = async (newPassword, oldPassword) => {
+        if (!newPassword || !oldPassword) throw new Error("Passwords cannot be empty");
+        try {
+            await account.updatePassword(newPassword, oldPassword);
+        } catch (error) {
+            console.error("Failed to update password:", error);
+            throw error;
+        }
+    };
+    // --- END NEW FUNCTIONS ---
+
 
     const contextData = {
         user,
@@ -75,12 +142,25 @@ export const AuthProvider = ({ children }) => {
         loginUser,
         logoutUser,
         registerUser,
-        googleLogin, // <-- Added Google login function
+        googleLogin, 
+        updateUserName,    // <-- Added
+        updateUserPassword, // <-- Added
+        // --- EXPOSE THEME VALUES ---
+        theme,
+        setTheme
+        // --- END EXPOSE ---
     };
 
     return (
         <AuthContext.Provider value={contextData}>
-            {loading ? <p>Loading...</p> : children}
+            {/* --- UPDATED LOADING --- */}
+            {/* Wrapped loading in a full-screen div for better UX */}
+            {loading ? (
+                 <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
+                    <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Loading application...</p>
+                 </div>
+            ) : children}
+            {/* --- END UPDATED LOADING --- */}
         </AuthContext.Provider>
     );
 };

@@ -1,17 +1,12 @@
 // src/components/Header.js
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // <-- Added Link
 import Modal from './Modal';
 import UploadForm from './UploadForm';
 import { useNotifications } from '../context/NotificationContext'; // (Keep this)
 
-// --- (All Icon Components - No change) ---
-const MenuIcon = (props) => (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
-);
+// --- (All Icon Components - No change, except MenuIcon removed) ---
 const SearchIcon = (props) => (
     <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -27,10 +22,18 @@ const BellIcon = (props) => (
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
     </svg>
 );
+// --- NEW ICONS FOR DROPDOWN ---
+const IconWrapper = (props) => (
+    <svg {...props} className={`h-5 w-5 ${props.className || ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {props.children}
+    </svg>
+);
+const SettingsIcon = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconWrapper>;
+const LogoutIcon = (props) => <IconWrapper {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></IconWrapper>;
 // --- (End Icons) ---
 
 
-const Header = ({ toggleSidebar }) => {
+const Header = ({ toggleSidebar }) => { // toggleSidebar prop is here, but unused by Header
     const { user, logoutUser } = useAuth();
     const navigate = useNavigate();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -84,56 +87,60 @@ const Header = ({ toggleSidebar }) => {
 
     return (
         <>
-            <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6">
+            {/* --- HEADER (Updated) --- */}
+            {/* Added dark:bg-gray-900 and dark:border-gray-800 */}
+            <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 dark:border-gray-800 dark:bg-gray-900">
                 
-                {/* Left Section (No change) */}
+                {/* --- MODIFIED: Left Section (Menu button removed) --- */}
                 <div className="flex items-center gap-4">
-                    <button onClick={toggleSidebar} className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100">
-                        <MenuIcon className="h-6 w-6" />
-                    </button>
+                    {/* <button onClick={toggleSidebar} ... /> REMOVED */}
                     <div className="cursor-pointer" onClick={() => navigate('/home')}>
-                        <span className="text-2xl font-bold text-gray-800">OFGConnects</span>
+                        {/* Added dark:text-gray-100 */}
+                        <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">OFGConnects</span>
                     </div>
                 </div>
 
-                {/* --- MODIFIED: Middle Section (Search) --- */}
+                {/* --- Middle Section (Search) (Updated) --- */}
                 <div className="hidden flex-1 justify-center px-4 sm:flex sm:max-w-2xl">
-                    {/* Wrap in a form element */}
-                    <form className="flex w-full overflow-hidden rounded-full border border-gray-300" onSubmit={handleSearchSubmit}>
+                    {/* Added dark:border-gray-700 */}
+                    <form className="flex w-full overflow-hidden rounded-full border border-gray-300 dark:border-gray-700" onSubmit={handleSearchSubmit}>
                         <input 
                             type="text" 
                             placeholder="Search..." 
-                            className="flex-1 border-none bg-gray-100 px-5 py-2.5 text-base text-gray-900 outline-none" 
+                            // Added dark mode classes
+                            className="flex-1 border-none bg-gray-100 px-5 py-2.5 text-base text-gray-900 outline-none dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400" 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         <button 
                             type="submit"
-                            className="border-l border-gray-300 bg-gray-50 px-5 text-gray-600 hover:bg-gray-100"
+                            // Added dark mode classes
+                            className="border-l border-gray-300 bg-gray-50 px-5 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                         >
                             <SearchIcon className="h-5 w-5" />
                         </button>
                     </form>
                 </div>
-                {/* --- END MODIFICATION --- */}
 
 
-                {/* Right Section (No change) */}
+                {/* Right Section (Updated) */}
                 <div className="flex items-center gap-2 sm:gap-4">
                     
-                    {/* Upload Button */}
+                    {/* Upload Button (Updated) */}
                     <button 
-                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100" 
+                        // Added dark mode classes
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800" 
                         title="Upload Video"
                         onClick={() => setIsUploadModalOpen(true)}
                     >
                         <UploadIcon className="h-6 w-6" />
                     </button>
 
-                    {/* Notification Bell & Dropdown */}
+                    {/* Notification Bell & Dropdown (Updated) */}
                     <div className="relative">
                         <button 
-                            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100"
+                            // Added dark mode classes
+                            className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                             onClick={() => {
                                 setIsNotifDropdownOpen(prev => !prev);
                                 if (unreadCount > 0) {
@@ -149,13 +156,15 @@ const Header = ({ toggleSidebar }) => {
                             )}
                         </button>
                         {isNotifDropdownOpen && (
-                            <div className="absolute right-0 top-12 z-10 w-80 rounded-md border border-gray-200 bg-white shadow-lg">
+                            // Added dark mode classes
+                            <div className="absolute right-0 top-12 z-10 w-80 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
                                 {/* ... (notification dropdown content) ... */}
+                                <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No new notifications.</div>
                             </div>
                         )}
                     </div>
 
-                    {/* Avatar & Dropdown */}
+                    {/* Avatar & Dropdown (Updated) */}
                     <div className="relative">
                         <button 
                             className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white"
@@ -165,8 +174,42 @@ const Header = ({ toggleSidebar }) => {
                         </button>
                         
                         {isUserDropdownOpen && (
-                            <div className="absolute right-0 top-12 z-10 w-64 rounded-md border border-gray-200 bg-white shadow-lg">
-                                {/* ... (user dropdown content) ... */}
+                            // Added dark mode classes
+                            <div className="absolute right-0 top-12 z-10 w-64 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                                {/* User Info Header (Updated) */}
+                                <div className="flex items-center gap-3 p-4">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white">
+                                        {getAvatarInitial()}
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        {/* Added dark mode classes */}
+                                        <div className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name || 'User'}</div>
+                                        <div className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email || ''}</div>
+                                    </div>
+                                </div>
+                                
+                                <hr className="border-gray-100 dark:border-gray-700" />
+
+                                {/* Menu Links (Updated) */}
+                                <nav className="py-2">
+                                    <Link 
+                                        to="/settings" 
+                                        onClick={() => setIsUserDropdownOpen(false)}
+                                        // Added dark mode classes
+                                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                    >
+                                        <SettingsIcon className="text-gray-500 dark:text-gray-400" />
+                                        <span>Account Settings</span>
+                                    </Link>
+                                    <button 
+                                        onClick={handleLogout}
+                                        // Added dark mode classes
+                                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                    >
+                                        <LogoutIcon className="text-gray-500 dark:text-gray-400" />
+                                        <span>Logout</span>
+                                    </button>
+                                </nav>
                             </div>
                         )}
                     </div>

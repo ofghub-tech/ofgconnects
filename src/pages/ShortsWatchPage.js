@@ -66,25 +66,30 @@ const ShortsWatchPage = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-100">
-                <p className="text-xl text-neutral-500">Loading Short...</p>
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-950">
+                <p className="text-xl text-neutral-500 dark:text-gray-400">Loading Short...</p>
             </div>
         );
     }
 
     if (!video) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-100">
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-950">
                 <p className="text-xl text-red-600">Short not found.</p>
             </div>
         );
     }
     
     return (
-        <div className="flex items-center justify-center h-screen w-full bg-neutral-900 text-white">
+        // --- MODIFIED: Added dark mode classes ---
+        // The page is already dark, so we just ensure consistency.
+        <div className="flex items-center justify-center h-screen w-full bg-neutral-900 text-white dark:bg-black">
             <button 
                 onClick={() => navigate('/shorts')} 
-                className="absolute top-4 left-4 text-white text-xl p-2 rounded-full hover:bg-neutral-800 z-10"
+                // --- MODIFIED: Added dark mode classes ---
+                className="absolute top-4 left-4 text-white text-xl p-2 rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-700 z-10"
             >
                 &larr; Close
             </button>
@@ -107,7 +112,8 @@ const ShortsWatchPage = () => {
                 
                 <div className="p-3 text-center">
                     <h2 className="text-xl font-bold">{video.title}</h2>
-                    <p className="text-sm text-neutral-400">@{video.username}</p>
+                    {/* --- MODIFIED: Added dark mode classes --- */}
+                    <p className="text-sm text-neutral-400 dark:text-neutral-500">@{video.username}</p>
                 </div>
             </div>
         </div>

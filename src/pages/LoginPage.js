@@ -48,21 +48,26 @@ const LoginPage = () => {
 
     return (
         // Replaced 'login-page-container'
-        <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        // --- MODIFIED: Added dark mode classes ---
+        <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Replaced 'login-form-wrapper' */}
-            <div className="bg-white p-8 sm:p-10 rounded-lg shadow-md w-full max-w-md text-center">
+            {/* --- MODIFIED: Added dark mode classes --- */}
+            <div className="bg-white p-8 sm:p-10 rounded-lg shadow-md w-full max-w-md text-center dark:bg-gray-800">
                 
                 {/* Header */}
-                <h2 className="mb-2 text-3xl font-bold text-gray-800">
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <h2 className="mb-2 text-3xl font-bold text-gray-800 dark:text-gray-100">
                     {isLoginView ? 'Welcome Back!' : 'Create Account'}
                 </h2>
-                <p className="mb-6 text-gray-600">
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <p className="mb-6 text-gray-600 dark:text-gray-400">
                     {isLoginView ? 'Log in to continue.' : 'Sign up to get started.'}
                 </p>
 
                 {/* Error Message: Replaced 'error-message' */}
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 {error && (
-                    <p className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-md mb-4 text-sm">
+                    <p className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-md mb-4 text-sm dark:bg-red-900 dark:border-red-700 dark:text-red-200">
                         {error}
                     </p>
                 )}
@@ -72,45 +77,51 @@ const LoginPage = () => {
                     {!isLoginView && (
                         // Replaced 'form-group'
                         <div className="mb-4 text-left">
-                            <label htmlFor="name" className="block mb-2 font-medium text-gray-700">
+                            {/* --- MODIFIED: Added dark mode classes --- */}
+                            <label htmlFor="name" className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
                                 Full Name
                             </label>
+                            {/* --- MODIFIED: Added dark mode classes --- */}
                             <input
                                 type="text"
                                 id="name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                             />
                         </div>
                     )}
                     {/* Replaced 'form-group' */}
                     <div className="mb-4 text-left">
-                        <label htmlFor="email" className="block mb-2 font-medium text-gray-700">
+                        {/* --- MODIFIED: Added dark mode classes --- */}
+                        <label htmlFor="email" className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
                             Email Address
                         </label>
+                        {/* --- MODIFIED: Added dark mode classes --- */}
                         <input
                             type="email"
                             id="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                         />
                     </div>
                     {/* Replaced 'form-group' */}
                     <div className="mb-5 text-left">
-                        <label htmlFor="password" className="block mb-2 font-medium text-gray-700">
+                        {/* --- MODIFIED: Added dark mode classes --- */}
+                        <label htmlFor="password" className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
                             Password
                         </label>
+                        {/* --- MODIFIED: Added dark mode classes --- */}
                         <input
                             type="password"
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                         />
                     </div>
 
@@ -121,19 +132,21 @@ const LoginPage = () => {
                 </form>
 
                 {/* Divider: Replaced 'divider' */}
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-gray-300"></span>
+                        <span className="w-full border-t border-gray-300 dark:border-gray-700"></span>
                     </div>
                     <div className="relative flex justify-center text-sm">
-                        <span className="bg-white px-2 text-gray-500">OR</span>
+                        <span className="bg-white px-2 text-gray-500 dark:bg-gray-800 dark:text-gray-400">OR</span>
                     </div>
                 </div>
 
                 {/* Google Login: Replaced 'btn btn-google' */}
+                {/* --- MODIFIED: Added dark mode classes --- */}
                 <button 
                     type="button" 
-                    className="w-full py-3 px-4 flex justify-center items-center gap-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                    className="w-full py-3 px-4 flex justify-center items-center gap-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
                     onClick={handleGoogleLogin}
                 >
                     {/* This is a simple SVG for the Google icon. */}
@@ -144,11 +157,12 @@ const LoginPage = () => {
                 </button>
 
                 {/* Toggle View: Replaced 'toggle-view' */}
-                <p className="mt-6 text-sm text-gray-600">
+                {/* --- MODIFIED: Added dark mode classes --- */}
+                <p className="mt-6 text-sm text-gray-600 dark:text-gray-400">
                     {isLoginView ? "Don't have an account?" : 'Already have an account?'}
                     <span 
                         onClick={() => setIsLoginView(!isLoginView)}
-                        className="ml-1 font-medium text-blue-600 hover:underline cursor-pointer"
+                        className="ml-1 font-medium text-blue-600 hover:underline cursor-pointer dark:text-blue-400"
                     >
                         {isLoginView ? ' Sign Up' : ' Log In'}
                     </span>

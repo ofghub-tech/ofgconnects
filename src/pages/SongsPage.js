@@ -5,12 +5,14 @@ import Feed from '../components/Feed';
 // NO LONGER NEEDED: import './SongsPage.css';
 
 const SongsPage = () => {
-    const [searchTerm] = useState(null); 
+    const [searchTerm] = useState(null); 
     // We assume the user searches in the header, so searchTerm is null here.
     
     return (
-        <div className="p-4 sm:p-6 lg:p-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Songs</h1>
+        // --- MODIFIED: Added dark mode and layout classes ---
+        <div className="p-4 sm:p-6 lg:p-8 min-h-full bg-gray-50 dark:bg-gray-900">
+            {/* --- MODIFIED: Added dark mode classes --- */}
+            <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Songs</h1>
             
             {/* --- FIX: Pass category prop --- */}
             <Feed searchTerm={searchTerm} category="songs" />

@@ -9,7 +9,7 @@ import {
 } from '../appwriteConfig';
 import { ID, Permission, Role } from 'appwrite';
 
-// --- (Spinner and Alert components - No changes) ---
+// --- (Spinner - No change needed) ---
 const Spinner = () => (
     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -17,15 +17,18 @@ const Spinner = () => (
     </svg>
 );
 
+// --- MODIFIED: Alert component with dark mode classes ---
 const Alert = ({ type, message }) => {
     const isError = type === 'error';
-    const bgColor = isError ? 'bg-red-100' : 'bg-green-100';
-    const borderColor = isError ? 'border-red-400' : 'border-green-400';
-    const textColor = isError ? 'text-red-700' : 'text-green-700';
+    const bgColor = isError ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900';
+    const borderColor = isError ? 'border-red-400 dark:border-red-700' : 'border-green-400 dark:border-green-700';
+    const textColor = isError ? 'text-red-700 dark:text-red-200' : 'text-green-700 dark:text-green-200';
+    const iconColor = isError ? 'text-red-400 dark:text-red-300' : 'text-green-400 dark:text-green-300';
+    
     const icon = isError ? (
-        <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+        <svg className={`h-5 w-5 ${iconColor}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
     ) : (
-        <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+        <svg className={`h-5 w-5 ${iconColor}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
     );
 
     return (
@@ -41,10 +44,10 @@ const Alert = ({ type, message }) => {
 };
 // --- (End reusable components) ---
 
-// --- (UI ENHANCEMENT: Added text-gray-900) ---
+// --- MODIFIED: Added dark mode classes ---
 const FormInput = ({ id, label, type = "text", value, onChange, required = false, ...props }) => (
     <div className="mb-4">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
             {label} { required && <span className="text-red-500">*</span> }
         </label>
         <input
@@ -53,16 +56,16 @@ const FormInput = ({ id, label, type = "text", value, onChange, required = false
             value={value}
             onChange={onChange}
             required={required}
-            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
             {...props}
         />
     </div>
 );
 
-// --- (UI ENHANCEMENT: Added text-gray-900) ---
+// --- MODIFIED: Added dark mode classes ---
 const FormTextarea = ({ id, label, value, onChange }) => (
     <div className="mb-4">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
             {label}
         </label>
         <textarea
@@ -70,25 +73,25 @@ const FormTextarea = ({ id, label, value, onChange }) => (
             value={value}
             onChange={onChange}
             rows="4"
-            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
         />
     </div>
 );
 
-// --- (File Input - No text color change needed) ---
+// --- MODIFIED: Added dark mode classes ---
 const FormFileInput = ({ id, label, onChange, required = false, accept, file, clearFile }) => {
     return (
         <div className="mb-4">
-            <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
-                {label} { required && <span className="text-red-500">*</span> } { !required && <span className="text-gray-500 text-xs">(Optional)</span> }
+            <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                {label} { required && <span className="text-red-500">*</span> } { !required && <span className="text-gray-500 text-xs dark:text-gray-400">(Optional)</span> }
             </label>
             {file ? (
-                <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                    <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                    <span className="text-sm text-gray-700 truncate dark:text-gray-300">{file.name}</span>
                     <button
                         type="button"
                         onClick={clearFile}
-                        className="ml-2 text-red-600 hover:text-red-800 font-medium"
+                        className="ml-2 text-red-600 hover:text-red-800 font-medium dark:text-red-400 dark:hover:text-red-300"
                     >
                         &times;
                     </button>
@@ -100,22 +103,24 @@ const FormFileInput = ({ id, label, onChange, required = false, accept, file, cl
                     onChange={onChange}
                     required={required}
                     accept={accept}
-                    className="block w-full text-sm text-gray-500
-                                 file:mr-4 file:py-2 file:px-4
-                                 file:rounded-full file:border-0
-                                 file:text-sm file:font-semibold
-                                 file:bg-blue-50 file:text-blue-700
-                                 hover:file:bg-blue-100"
+                    className="block w-full text-sm text-gray-500 dark:text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100
+                                dark:file:bg-blue-900 dark:file:text-blue-300
+                                dark:hover:file:bg-blue-800"
                 />
             )}
         </div>
     );
 };
 
-// --- (UI ENHANCEMENT: Added text-gray-900) ---
+// --- MODIFIED: Added dark mode classes ---
 const FormSelect = ({ id, label, value, onChange, required = false, children }) => (
     <div className="mb-6">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
             {label} { required && <span className="text-red-500">*</span> }
         </label>
         <select
@@ -123,7 +128,7 @@ const FormSelect = ({ id, label, value, onChange, required = false, children }) 
             value={value}
             onChange={onChange}
             required={required}
-            className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
         >
             {children}
         </select>
@@ -131,7 +136,7 @@ const FormSelect = ({ id, label, value, onChange, required = false, children }) 
 );
 
 
-const UploadForm = () => {
+const UploadForm = ({ onUploadSuccess }) => { // <-- MODIFIED: Accept new prop
     const { user } = useAuth();
     
     // Step Management
@@ -358,6 +363,12 @@ const UploadForm = () => {
             isSubmitted.current = true;
 
             setSuccess('Upload successful! Your video is now live.');
+
+            // --- NEW LOGIC: Call success prop ---
+            if (onUploadSuccess) {
+                onUploadSuccess();
+            }
+            
             resetForm(); // This will also reset the refs
             
         } catch (err) {
@@ -406,13 +417,15 @@ const UploadForm = () => {
 
 
     return (
-        <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-xl my-10">
+        // --- MODIFIED: Added dark mode classes ---
+        <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-xl my-10 dark:bg-gray-800">
             
             {/* ======================= STEP 1: VIDEO UPLOAD ======================= */}
             {step === 1 && (
                 <>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Your Video</h2>
-                    <p className="text-gray-600 mb-6">Select a video file to begin. You will enter the details on the next step while it uploads.</p>
+                    {/* --- MODIFIED: Added dark mode classes --- */}
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 dark:text-gray-100">Upload Your Video</h2>
+                    <p className="text-gray-600 mb-6 dark:text-gray-400">Select a video file to begin. You will enter the details on the next step while it uploads.</p>
                     
                     {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
                     
@@ -431,27 +444,28 @@ const UploadForm = () => {
             {/* ======================= STEP 2: DETAILS FORM ======================= */}
             {step === 2 && (
                 <>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Enter Video Details</h2>
+                    {/* --- MODIFIED: Added dark mode classes --- */}
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6 dark:text-gray-100">Enter Video Details</h2>
                     <form onSubmit={handleSubmit}>
                         
                         {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
                         {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
 
-                        {/* Video Status Indicator */}
-                        <div className="mb-4 p-3 bg-gray-50 rounded-md border border-gray-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Video File</label>
+                        {/* --- MODIFIED: Added dark mode classes --- */}
+                        <div className="mb-4 p-3 bg-gray-50 rounded-md border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Video File</label>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600 truncate">{videoFile?.name}</span>
+                                <span className="text-sm text-gray-600 truncate dark:text-gray-400">{videoFile?.name}</span>
                                 {isUploadingVideo && (
-                                    <div className="flex items-center text-blue-600">
+                                    <div className="flex items-center text-blue-600 dark:text-blue-400">
                                         <Spinner /> Processing...
                                     </div>
                                 )}
                                 {!isUploadingVideo && videoUploadResponse && (
-                                    <span className="text-sm font-medium text-green-600">Upload Complete</span>
+                                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Upload Complete</span>
                                 )}
                                 {!isUploadingVideo && !videoUploadResponse && error && (
-                                    <span className="text-sm font-medium text-red-600">Upload Failed</span>
+                                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Upload Failed</span>
                                 )}
                             </div>
                         </div>
@@ -472,7 +486,8 @@ const UploadForm = () => {
                             required={true}
                             placeholder="e.g. gospel, worship, testimony"
                         />
-                        <p className="text-xs text-gray-500 -mt-2 mb-4">Separate tags with a comma (,).</p>
+                        {/* --- MODIFIED: Added dark mode classes --- */}
+                        <p className="text-xs text-gray-500 -mt-2 mb-4 dark:text-gray-400">Separate tags with a comma (,).</p>
 
                         <FormTextarea
                             id="description"
@@ -495,14 +510,16 @@ const UploadForm = () => {
                             {/* Thumbnail Preview */}
                             {thumbnailPreview ? (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
-                                    <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-auto rounded-md border border-gray-300" />
+                                    {/* --- MODIFIED: Added dark mode classes --- */}
+                                    <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Preview</label>
+                                    <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-auto rounded-md border border-gray-300 dark:border-gray-600" />
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
-                                    <div className="flex items-center justify-center w-full h-[125px] border-2 border-gray-300 border-dashed rounded-md bg-gray-50">
-                                        <span className="text-gray-400">No thumbnail</span>
+                                    {/* --- MODIFIED: Added dark mode classes --- */}
+                                    <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Preview</label>
+                                    <div className="flex items-center justify-center w-full h-[125px] border-2 border-gray-300 border-dashed rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                                        <span className="text-gray-400 dark:text-gray-500">No thumbnail</span>
                                     </div>
                                 </div>
                             )}
@@ -527,8 +544,8 @@ const UploadForm = () => {
                             type="submit" 
                             disabled={isSubmitDisabled}
                             className="w-full flex items-center justify-center py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm
-                                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                                         disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
+                                     hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                                     disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
                         >
                             {(isUploadingVideo || isSubmittingDetails) && <Spinner />}
                             {buttonText}

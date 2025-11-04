@@ -60,13 +60,13 @@ const HomePage = () => {
     return (
         <div className="w-full">
             
-            {/* 1. Daily Random Verse Section (Styled for light theme) */}
-            <div className="border-b border-gray-200 bg-amber-50 p-6 shadow-sm">
+            {/* --- MODIFIED: 1. Daily Random Verse Section --- */}
+            <div className="border-b border-gray-200 bg-amber-50 p-6 shadow-sm dark:bg-gray-800 dark:border-gray-700">
                 
                 {/* --- Section Header --- */}
                 <div className="flex items-center justify-center gap-3 mb-4">
-                    <BookIcon className="h-6 w-6 text-amber-700" />
-                    <h2 className="text-lg font-semibold text-amber-700">
+                    <BookIcon className="h-6 w-6 text-amber-700 dark:text-amber-500" />
+                    <h2 className="text-lg font-semibold text-amber-700 dark:text-amber-500">
                         Verse of the Day
                     </h2>
                 </div>
@@ -74,16 +74,16 @@ const HomePage = () => {
                 {/* --- Verse Content --- */}
                 <div className="text-center min-h-[80px]"> {/* min-height prevents layout shift */}
                     {verseLoading ? (
-                        <p className="italic text-gray-500">Loading today's inspiration...</p>
+                        <p className="italic text-gray-500 dark:text-gray-400">Loading today's inspiration...</p>
                     ) : verseError ? (
                         <p className="font-semibold text-red-500">Failed to load verse.</p>
                     ) : (
                         dailyVerse && (
                             <blockquote className="relative">
-                                <p className="mb-3 text-2xl font-medium italic text-gray-800">
+                                <p className="mb-3 text-2xl font-medium italic text-gray-800 dark:text-gray-100">
                                     "{dailyVerse.verseText}"
                                 </p>
-                                <footer className="text-md font-semibold text-amber-800">
+                                <footer className="text-md font-semibold text-amber-800 dark:text-amber-400">
                                     — {dailyVerse.reference}
                                 </footer>
                             </blockquote>
@@ -91,6 +91,7 @@ const HomePage = () => {
                     )}
                 </div>
             </div>
+            {/* --- END MODIFICATION --- */}
 
             {/* 2. Main Video Feed */}
             {/* --- THIS IS THE FIX --- */}

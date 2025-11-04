@@ -38,8 +38,9 @@ const VideoRouter = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen w-full bg-white">
-                <p className="text-xl text-gray-700">Checking video type...</p>
+            // --- MODIFIED: Added dark mode classes ---
+            <div className="flex items-center justify-center h-screen w-full bg-white dark:bg-gray-900">
+                <p className="text-xl text-gray-700 dark:text-gray-300">Checking video type...</p>
             </div>
         );
     }

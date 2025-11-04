@@ -80,7 +80,8 @@ const Feed = ({ searchTerm, category }) => {
 
     
     if (status === 'loading') {
-        return <p className="p-6 text-center text-gray-500">Loading videos...</p>
+        // --- MODIFIED: Added dark mode class ---
+        return <p className="p-6 text-center text-gray-500 dark:text-gray-400">Loading videos...</p>
     }
 
     if (status === 'error') {
@@ -94,7 +95,8 @@ const Feed = ({ searchTerm, category }) => {
             <div className="grid grid-cols-1 gap-x-6 gap-y-8 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 
                 {allVideos.length === 0 && !isFetching && (
-                    <p className="col-span-full py-8 text-center text-lg text-gray-600">
+                    // --- MODIFIED: Added dark mode class ---
+                    <p className="col-span-full py-8 text-center text-lg text-gray-600 dark:text-gray-400">
                         {searchTerm 
                             ? `No results found for "${searchTerm}"` 
                             : "No videos yet. Be the first to upload!"}
@@ -114,7 +116,10 @@ const Feed = ({ searchTerm, category }) => {
                         ref={ref}
                         onClick={() => fetchNextPage()}
                         disabled={!hasNextPage || isFetchingNextPage}
-                        className="rounded-md bg-gray-100 px-6 py-3 font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+                        // --- MODIFIED: Added dark mode classes ---
+                        className="rounded-md bg-gray-100 px-6 py-3 font-medium text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400
+                                   dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700
+                                   dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
                     >
                         {isFetchingNextPage
                             ? 'Loading more...'

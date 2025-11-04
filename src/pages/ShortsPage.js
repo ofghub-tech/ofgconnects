@@ -8,7 +8,7 @@ import {
 } from '../appwriteConfig';
 import { Query } from 'appwrite';
 // REMOVED: Modal is no longer needed
-import './ShortsPage.css'; 
+// import './ShortsPage.css'; // <-- REMOVED THIS LINE TO FIX THE ERROR
 
 const ShortsPage = () => {
     const navigate = useNavigate();
@@ -56,37 +56,46 @@ const ShortsPage = () => {
 
     return (
         <>
-            <div className="shorts-container">
-                <h1 className="shorts-title">Shorts</h1>
+            {/* --- MODIFIED: Replaced custom class with Tailwind --- */}
+            <div className="p-4 sm:p-6 lg:p-8 min-h-full bg-gray-50 dark:bg-gray-900">
+                {/* --- MODIFIED: Replaced custom class with Tailwind --- */}
+                <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Shorts</h1>
                 
-                {loading && <p>Loading shorts...</p>}
+                {/* --- MODIFIED: Added dark mode text --- */}
+                {loading && <p className="text-gray-600 dark:text-gray-400">Loading shorts...</p>}
 
                 {!loading && shorts.length === 0 && (
-                    <p className="shorts-empty-message">
+                    // --- MODIFIED: Replaced custom class with Tailwind ---
+                    <p className="text-gray-600 dark:text-gray-400">
                         No shorts have been uploaded yet.
                     </p>
                 )}
 
-                <div className="shorts-grid">
+                {/* --- MODIFIED: Replaced custom class with Tailwind --- */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {shorts.map(short => (
                         <div 
                             key={short.$id} 
-                            className="short-video-card"
+                            // --- MODIFIED: Replaced custom class with Tailwind ---
+                            className="relative aspect-[9/16] rounded-lg overflow-hidden shadow-md cursor-pointer group transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105 bg-gray-800"
                             // --- THIS IS THE NAVIGATION FIX ---
                             // Click now navigates to the VideoRouter
                             onClick={() => navigate(`/watch/${short.$id}`)} 
                         >
                             <video 
                                 src={short.videoUrl} 
-                                className="short-video"
+                                // --- MODIFIED: Replaced custom class with Tailwind ---
+                                className="w-full h-full object-cover"
                                 loop
                                 muted
                                 playsInline
                                 onMouseOver={handleMouseOver} // Use safe handler
                                 onMouseOut={handleMouseOut}
                             />
-                            <div className="short-video-info">
-                                <span className="short-video-user">{short.username}</span>
+                            {/* --- MODIFIED: Replaced custom class with Tailwind --- */}
+                            <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/60 to-transparent">
+                                {/* --- MODIFIED: Replaced custom class with Tailwind --- */}
+                                <span className="text-white text-sm font-medium truncate">{short.username}</span>
                             </div>
                         </div>
                     ))}
