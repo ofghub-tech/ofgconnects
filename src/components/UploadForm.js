@@ -1,13 +1,19 @@
 // src/components/UploadForm.js
-import React, { useState, useEffect, useRef } from 'react'; // Import useRef
+import React, { useState, useEffect, useRef } from 'react';
 import { databases, storage } from '../appwriteConfig';
 import { useAuth } from '../context/AuthContext';
-import { 
-    DATABASE_ID, 
+import {
+    DATABASE_ID,
     COLLECTION_ID_VIDEOS,
     BUCKET_ID_VIDEOS,
 } from '../appwriteConfig';
 import { ID, Permission, Role } from 'appwrite';
+
+// --- Constants for Validation ---
+const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_THUMB_SIZE = 5 * 1024 * 1024;   // 5MB
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'];
+const ALLOWED_THUMB_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 // --- (Spinner - No change needed) ---
 const Spinner = () => (
@@ -17,14 +23,14 @@ const Spinner = () => (
     </svg>
 );
 
-// --- MODIFIED: Alert component with dark mode classes ---
+// --- Alert Component ---
 const Alert = ({ type, message }) => {
     const isError = type === 'error';
     const bgColor = isError ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900';
     const borderColor = isError ? 'border-red-400 dark:border-red-700' : 'border-green-400 dark:border-green-700';
     const textColor = isError ? 'text-red-700 dark:text-red-200' : 'text-green-700 dark:text-green-200';
     const iconColor = isError ? 'text-red-400 dark:text-red-300' : 'text-green-400 dark:text-green-300';
-    
+
     const icon = isError ? (
         <svg className={`h-5 w-5 ${iconColor}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
     ) : (
@@ -42,13 +48,12 @@ const Alert = ({ type, message }) => {
         </div>
     );
 };
-// --- (End reusable components) ---
 
-// --- MODIFIED: Added dark mode classes ---
+// --- Reusable Form Components ---
 const FormInput = ({ id, label, type = "text", value, onChange, required = false, ...props }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
-            {label} { required && <span className="text-red-500">*</span> }
+            {label} {required && <span className="text-red-500">*</span>}
         </label>
         <input
             type={type}
@@ -62,7 +67,6 @@ const FormInput = ({ id, label, type = "text", value, onChange, required = false
     </div>
 );
 
-// --- MODIFIED: Added dark mode classes ---
 const FormTextarea = ({ id, label, value, onChange }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
@@ -78,12 +82,11 @@ const FormTextarea = ({ id, label, value, onChange }) => (
     </div>
 );
 
-// --- MODIFIED: Added dark mode classes ---
 const FormFileInput = ({ id, label, onChange, required = false, accept, file, clearFile }) => {
     return (
         <div className="mb-4">
             <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
-                {label} { required && <span className="text-red-500">*</span> } { !required && <span className="text-gray-500 text-xs dark:text-gray-400">(Optional)</span> }
+                {label} {required && <span className="text-red-500">*</span>} {!required && <span className="text-gray-500 text-xs dark:text-gray-400">(Optional)</span>}
             </label>
             {file ? (
                 <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
@@ -117,11 +120,10 @@ const FormFileInput = ({ id, label, onChange, required = false, accept, file, cl
     );
 };
 
-// --- MODIFIED: Added dark mode classes ---
 const FormSelect = ({ id, label, value, onChange, required = false, children }) => (
     <div className="mb-6">
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
-            {label} { required && <span className="text-red-500">*</span> }
+            {label} {required && <span className="text-red-500">*</span>}
         </label>
         <select
             id={id}
@@ -135,69 +137,40 @@ const FormSelect = ({ id, label, value, onChange, required = false, children }) 
     </div>
 );
 
-
-const UploadForm = ({ onUploadSuccess }) => { // <-- MODIFIED: Accept new prop
+const UploadForm = ({ onUploadSuccess }) => {
     const { user } = useAuth();
-    
-    // Step Management
-    const [step, setStep] = useState(1);
 
-    // Form Details State
+    const [step, setStep] = useState(1);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState(''); 
+    const [category, setCategory] = useState('');
     const [tags, setTags] = useState('');
     const [thumbnailFile, setThumbnailFile] = useState(null);
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
-    
-    // Upload & Submission State
+
     const [videoFile, setVideoFile] = useState(null);
     const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    // --- PROGRESS STATE ---
+    const [uploadProgress, setUploadProgress] = useState(0);
+
     const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
-    const [videoUploadResponse, setVideoUploadResponse] = useState(null); 
-    
-    // UI State
+    const [videoUploadResponse, setVideoUploadResponse] = useState(null);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
-    // --- NEW LOGIC: Refs for cleanup ---
     const isSubmitted = useRef(false);
-    const uploadedFileIds = useRef({
-        video: null,
-        thumbnail: null
-    });
+    const uploadedFileIds = useRef({ video: null, thumbnail: null });
 
-    // --- NEW LOGIC: Cleanup files on unmount if not submitted ---
     useEffect(() => {
-        // This return function is the cleanup handler
         return () => {
             if (!isSubmitted.current) {
-                console.log('Component unmounting without submission. Cleaning up files...');
-                
                 const { video, thumbnail } = uploadedFileIds.current;
-
-                if (video) {
-                    try {
-                        console.log(`Deleting orphaned video: ${video}`);
-                        storage.deleteFile(BUCKET_ID_VIDEOS, video);
-                    } catch (err) {
-                        console.error('Failed to delete orphaned video:', err);
-                    }
-                }
-                if (thumbnail) {
-                    try {
-                        console.log(`Deleting orphaned thumbnail: ${thumbnail}`);
-                        storage.deleteFile(BUCKET_ID_VIDEOS, thumbnail);
-                    } catch (err) {
-                        console.error('Failed to delete orphaned thumbnail:', err);
-                    }
-                }
+                if (video) try { storage.deleteFile(BUCKET_ID_VIDEOS, video); } catch (e) { }
+                if (thumbnail) try { storage.deleteFile(BUCKET_ID_VIDEOS, thumbnail); } catch (e) { }
             }
         };
-    }, []); // Empty dependency array means this runs only on mount and unmount
+    }, []);
 
-
-    // Thumbnail Preview Effect
     useEffect(() => {
         if (!thumbnailFile) {
             setThumbnailPreview(null);
@@ -208,315 +181,214 @@ const UploadForm = ({ onUploadSuccess }) => { // <-- MODIFIED: Accept new prop
         return () => URL.revokeObjectURL(objectUrl);
     }, [thumbnailFile]);
 
-    // Reset Form
     const resetForm = () => {
-        setTitle('');
-        setDescription('');
-        setTags('');
-        setVideoFile(null);
-        setThumbnailFile(null);
-        setThumbnailPreview(null);
-        setCategory('');
-        setStep(1);
-        setIsUploadingVideo(false);
-        setIsSubmittingDetails(false);
-        setVideoUploadResponse(null);
-        setError(null);
-        setSuccess(null);
-
-        // --- NEW LOGIC: Reset refs ---
+        setTitle(''); setDescription(''); setTags(''); setCategory('');
+        setVideoFile(null); setThumbnailFile(null); setThumbnailPreview(null);
+        setStep(1); setIsUploadingVideo(false); setIsSubmittingDetails(false);
+        setVideoUploadResponse(null); setError(null); setSuccess(null);
+        setUploadProgress(0);
         isSubmitted.current = false;
         uploadedFileIds.current = { video: null, thumbnail: null };
     };
 
     const clearThumbnailFile = () => setThumbnailFile(null);
 
-    // ===================================================================
-    // --- Step 1 Function (Handles video selection & starts upload) ---
-    // ===================================================================
+    // --- STEP 1: Video Selection & Upload with Progress ---
     const handleVideoFileChange = async (e) => {
         const file = e.target.files[0];
-        if (!file || !user) {
+        if (!file || !user) return;
+
+        if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+            setError('Invalid video format. Please use MP4, WebM, or MOV.');
+            e.target.value = "";
+            return;
+        }
+        if (file.size > MAX_VIDEO_SIZE) {
+            setError(`Video is too large. Maximum size is ${MAX_VIDEO_SIZE / (1024 * 1024)}MB.`);
+            e.target.value = "";
             return;
         }
 
         setVideoFile(file);
         setStep(2);
         setIsUploadingVideo(true);
+        setUploadProgress(0);
         setError(null);
         setSuccess(null);
 
         try {
             const newVideoId = ID.unique();
-
-            // --- NEW LOGIC: Store video ID in ref ---
             uploadedFileIds.current.video = newVideoId;
 
             const videoUpload = await storage.createFile(
                 BUCKET_ID_VIDEOS,
                 newVideoId,
                 file,
-                [Permission.read(Role.any())]
+                [Permission.read(Role.any())],
+                (progress) => {
+                    const percent = Math.round((progress.loaded / progress.total) * 100);
+                    setUploadProgress(percent);
+                }
             );
 
-            // ===============================================================
-            // --- THIS IS THE CRASH FIX ---
-            // 'storage.getFileView' returns a STRING, not an object.
-            // We just use the string directly.
-            // ===============================================================
             const videoUrlString = storage.getFileView(videoUpload.bucketId, videoUpload.$id);
-
-            setVideoUploadResponse({
-                fileId: newVideoId,
-                urlString: videoUrlString // Use the string
-            });
-            
+            setVideoUploadResponse({ fileId: newVideoId, urlString: videoUrlString });
             setIsUploadingVideo(false);
-
         } catch (err) {
-            console.error('Background video upload failed:', err);
-            setError(`Video upload failed: ${err.message}. Please go back and try again.`);
-            
-            // --- NEW LOGIC: Clear ref on error ---
-            uploadedFileIds.current.video = null; 
+            console.error('Video upload failed:', err);
+            setError(`Video upload failed: ${err.message}. Please try a smaller file or check your connection.`);
+            uploadedFileIds.current.video = null;
             setIsUploadingVideo(false);
         }
     };
 
+    const handleThumbnailChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!ALLOWED_THUMB_TYPES.includes(file.type)) {
+                setError('Invalid thumbnail format. Use PNG, JPG, or WEBP.');
+                e.target.value = "";
+                return;
+            }
+            if (file.size > MAX_THUMB_SIZE) {
+                setError(`Thumbnail is too large. Maximum size is ${MAX_THUMB_SIZE / (1024 * 1024)}MB.`);
+                e.target.value = "";
+                return;
+            }
+            setError(null);
+        }
+        setThumbnailFile(file);
+    };
 
-    // ===================================================================
-    // --- Step 2 Function (Handles final details submission) ---
-    // ===================================================================
+    // --- STEP 2: Final Submission (FIXED tagsString ERROR HERE) ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
         if (!videoUploadResponse || isUploadingVideo) {
             setError('Please wait for the video to finish processing.');
             return;
         }
-        
         if (!title || !category || !tags) {
-            setError('Please fill out all required fields (Title, Tags, Category).');
+            setError('Please fill out all required fields.');
             return;
         }
 
         setIsSubmittingDetails(true);
         setError(null);
-        setSuccess(null);
 
-        let thumbnailUrlString = null; 
-        let newThumbnailId = null; // --- NEW LOGIC: Define ID here ---
+        let thumbnailUrlString = null;
+        let newThumbnailId = null;
 
         try {
             const { fileId: videoFileId, urlString: videoUrlString } = videoUploadResponse;
-            
-            if (!videoUrlString) {
-                setError('Video URL is missing. Please try uploading the video again.');
-                setIsSubmittingDetails(false);
-                return;
-            }
 
             if (thumbnailFile) {
-                newThumbnailId = ID.unique(); // --- NEW LOGIC: Assign ID ---
-
-                // --- NEW LOGIC: Store thumbnail ID in ref ---
+                newThumbnailId = ID.unique();
                 uploadedFileIds.current.thumbnail = newThumbnailId;
-
-                await storage.createFile(
-                    BUCKET_ID_VIDEOS,
-                    newThumbnailId,
-                    thumbnailFile,
-                    [Permission.read(Role.any())]
-                );
-                
-                // --- CRASH FIX ---
+                await storage.createFile(BUCKET_ID_VIDEOS, newThumbnailId, thumbnailFile, [Permission.read(Role.any())]);
                 thumbnailUrlString = storage.getFileView(BUCKET_ID_VIDEOS, newThumbnailId);
             }
-            
-            const tagsArray = tags.split(',')
-                                .map(tag => tag.trim())
-                                .filter(tag => tag.length > 0);
 
-            const documentToCreate = {
-                videoUrl: videoUrlString,
-                thumbnailUrl: thumbnailUrlString,
-                title: title,
-                description: description,
-                userId: user.$id,
-                username: user.name,
-                category: category,
-                tags: tagsArray,
-                likeCount: 0, 
-                commentCount: 0,
-            };
-
-            console.log("Submitting document:", documentToCreate);
+            // --- FIX IS HERE: Define tagsString before using it ---
+            const tagsString = tags.trim();
 
             await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
-                videoFileId, // Use the video's ID as the document ID
-                documentToCreate
+                videoFileId,
+                {
+                    videoUrl: videoUrlString,
+                    thumbnailUrl: thumbnailUrlString,
+                    title, description, userId: user.$id, username: user.name,
+                    category, 
+                    tags: tagsString, // <--- Now it uses the defined variable
+                    likeCount: 0, commentCount: 0,
+                }
             );
 
-            // --- NEW LOGIC: Mark as submitted ON SUCCESS ---
             isSubmitted.current = true;
-
             setSuccess('Upload successful! Your video is now live.');
+            if (onUploadSuccess) onUploadSuccess();
+            resetForm();
 
-            // --- NEW LOGIC: Call success prop ---
-            if (onUploadSuccess) {
-                onUploadSuccess();
-            }
-            
-            resetForm(); // This will also reset the refs
-            
         } catch (err) {
             console.error('Database submission failed:', err);
-            setError(`Submission failed: ${err.message || 'Something went wrong.'}`);
-
-            // --- NEW LOGIC: Cleanup files on database error ---
-            console.log('Database error. Cleaning up uploaded files...');
-            try {
-                // We already have the video ID from the `videoUploadResponse`
-                if (videoUploadResponse?.fileId) {
-                    console.log(`Deleting orphaned video: ${videoUploadResponse.fileId}`);
-                    await storage.deleteFile(BUCKET_ID_VIDEOS, videoUploadResponse.fileId);
-                }
-                // We stored the new thumbnail ID
-                if (newThumbnailId) {
-                    console.log(`Deleting orphaned thumbnail: ${newThumbnailId}`);
-                    await storage.deleteFile(BUCKET_ID_VIDEOS, newThumbnailId);
-                }
-            } catch (cleanupErr) {
-                console.error('Failed during cleanup:', cleanupErr);
-                setError(`Submission failed, and cleanup also failed. Please contact support. Error: ${err.message}`);
-            }
+            setError(`Submission failed: ${err.message}`);
         }
         setIsSubmittingDetails(false);
     };
-    // ===================================================================
-    // --- END OF UPDATED FUNCTIONS ---
-    // ===================================================================
 
-
-    // Calculate button state
-    const isSubmitDisabled = 
-        isUploadingVideo ||
-        isSubmittingDetails ||
-        !videoUploadResponse ||
-        !title || !tags || !category;
-
-    // Dynamic button text
-    let buttonText = 'Publish Video';
-    if (isUploadingVideo) {
-        buttonText = 'Processing Video...';
-    } else if (isSubmittingDetails) {
-        buttonText = 'Publishing...';
-    }
-
+    const isSubmitDisabled = isUploadingVideo || isSubmittingDetails || !videoUploadResponse || !title || !tags || !category;
+    let buttonText = isUploadingVideo ? `Uploading Video (${uploadProgress}%)...` : (isSubmittingDetails ? 'Publishing...' : 'Publish Video');
 
     return (
-        // --- MODIFIED: Added dark mode classes ---
         <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-xl my-10 dark:bg-gray-800">
-            
-            {/* ======================= STEP 1: VIDEO UPLOAD ======================= */}
             {step === 1 && (
                 <>
-                    {/* --- MODIFIED: Added dark mode classes --- */}
                     <h2 className="text-2xl font-bold text-gray-900 mb-6 dark:text-gray-100">Upload Your Video</h2>
-                    <p className="text-gray-600 mb-6 dark:text-gray-400">Select a video file to begin. You will enter the details on the next step while it uploads.</p>
-                    
+                    <p className="text-gray-600 mb-6 dark:text-gray-400">Select a video file to begin (Max 500MB). Supported: MP4, WebM, MOV.</p>
                     {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
-                    
                     <FormFileInput
-                        id="videoFile"
-                        label="Video File"
-                        onChange={handleVideoFileChange}
-                        required={true}
-                        accept="video/mp4,video/webm"
-                        file={null}
-                        clearFile={() => {}}
+                        id="videoFile" label="Video File" onChange={handleVideoFileChange} required={true}
+                        accept={ALLOWED_VIDEO_TYPES.join(',')} file={null} clearFile={() => { }}
                     />
                 </>
             )}
 
-            {/* ======================= STEP 2: DETAILS FORM ======================= */}
             {step === 2 && (
                 <>
-                    {/* --- MODIFIED: Added dark mode classes --- */}
                     <h2 className="text-2xl font-bold text-gray-900 mb-6 dark:text-gray-100">Enter Video Details</h2>
                     <form onSubmit={handleSubmit}>
-                        
                         {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
                         {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
 
-                        {/* --- MODIFIED: Added dark mode classes --- */}
+                        {/* --- Video File Status with Progress Bar --- */}
                         <div className="mb-4 p-3 bg-gray-50 rounded-md border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-                            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Video File</label>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600 truncate dark:text-gray-400">{videoFile?.name}</span>
-                                {isUploadingVideo && (
-                                    <div className="flex items-center text-blue-600 dark:text-blue-400">
-                                        <Spinner /> Processing...
+                            <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                                Video Status: {videoFile?.name}
+                            </label>
+                            
+                            {isUploadingVideo ? (
+                                <div className="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-600 overflow-hidden">
+                                    <div 
+                                        className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out" 
+                                        style={{ width: `${uploadProgress}%` }}
+                                    >
+                                        <span className="text-xs text-white font-medium flex items-center justify-center h-full">
+                                            {uploadProgress > 10 && `${uploadProgress}%`}
+                                        </span>
                                     </div>
-                                )}
-                                {!isUploadingVideo && videoUploadResponse && (
-                                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Upload Complete</span>
-                                )}
-                                {!isUploadingVideo && !videoUploadResponse && error && (
-                                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Upload Failed</span>
-                                )}
-                            </div>
+                                </div>
+                            ) : videoUploadResponse ? (
+                                <span className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Upload Complete (100%)
+                                </span>
+                            ) : error ? (
+                                <span className="text-sm font-medium text-red-600 dark:text-red-400">Upload Failed</span>
+                            ) : null}
                         </div>
 
-                        <FormInput
-                            id="title"
-                            label="Video Title"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required={true}
-                        />
-
-                        <FormInput
-                            id="tags"
-                            label="Tags"
-                            value={tags}
-                            onChange={(e) => setTags(e.target.value)}
-                            required={true}
-                            placeholder="e.g. gospel, worship, testimony"
-                        />
-                        {/* --- MODIFIED: Added dark mode classes --- */}
+                        <FormInput id="title" label="Video Title" value={title} onChange={(e) => setTitle(e.target.value)} required={true} />
+                        <FormInput id="tags" label="Tags" value={tags} onChange={(e) => setTags(e.target.value)} required={true} placeholder="e.g. gospel, worship, testimony" />
                         <p className="text-xs text-gray-500 -mt-2 mb-4 dark:text-gray-400">Separate tags with a comma (,).</p>
+                        <FormTextarea id="description" label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
 
-                        <FormTextarea
-                            id="description"
-                            label="Description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                        />
-                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormFileInput
-                                id="thumbnailFile"
-                                label="Thumbnail Image" 
-                                onChange={(e) => setThumbnailFile(e.target.files[0])} 
-                                required={false}
-                                accept="image/png,image/jpeg,image/webp"
-                                file={thumbnailFile} 
-                                clearFile={clearThumbnailFile}
+                                id="thumbnailFile" label="Thumbnail Image (Max 5MB)"
+                                onChange={handleThumbnailChange}
+                                required={false} accept={ALLOWED_THUMB_TYPES.join(',')}
+                                file={thumbnailFile} clearFile={clearThumbnailFile}
                             />
-                            
-                            {/* Thumbnail Preview */}
                             {thumbnailPreview ? (
                                 <div>
-                                    {/* --- MODIFIED: Added dark mode classes --- */}
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Preview</label>
                                     <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-auto rounded-md border border-gray-300 dark:border-gray-600" />
                                 </div>
                             ) : (
                                 <div>
-                                    {/* --- MODIFIED: Added dark mode classes --- */}
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Preview</label>
                                     <div className="flex items-center justify-center w-full h-[125px] border-2 border-gray-300 border-dashed rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                                         <span className="text-gray-400 dark:text-gray-500">No thumbnail</span>
@@ -525,30 +397,16 @@ const UploadForm = ({ onUploadSuccess }) => { // <-- MODIFIED: Accept new prop
                             )}
                         </div>
 
-                        <FormSelect
-                            id="category"
-                            label="Category"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            required={true}
-                        >
+                        <FormSelect id="category" label="Category" value={category} onChange={(e) => setCategory(e.target.value)} required={true}>
                             <option value="">Select a Category</option>
                             <option value="general">General Video</option>
                             <option value="shorts">Short Video</option>
                             <option value="songs">Song</option>
                             <option value="kids">Kids Video</option>
-                        </FormSelect> 
+                        </FormSelect>
 
-
-                        <button 
-                            type="submit" 
-                            disabled={isSubmitDisabled}
-                            className="w-full flex items-center justify-center py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm
-                                     hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                                     disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
-                        >
-                            {(isUploadingVideo || isSubmittingDetails) && <Spinner />}
-                            {buttonText}
+                        <button type="submit" disabled={isSubmitDisabled} className="w-full flex items-center justify-center py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200">
+                            {(isUploadingVideo || isSubmittingDetails) && <Spinner />} {buttonText}
                         </button>
                     </form>
                 </>

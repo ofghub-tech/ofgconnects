@@ -1,5 +1,6 @@
 // src/App.js
 import React, { useState } from 'react';
+import MigrationPage from './pages/MigrationPage';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Header from './components/Header';
@@ -76,6 +77,7 @@ function App() {
             <Routes>
                 {/* Public Route: Login Page */}
                 <Route path="/" element={<LoginPage />} />
+                <Route path="/migrate-data" element={<MigrationPage />} />
                 
                 {/* Wildcard Route to apply AppLayout */}
                 <Route 

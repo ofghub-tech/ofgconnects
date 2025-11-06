@@ -27,4 +27,4 @@ export const COLLECTION_ID_HISTORY = process.env.REACT_APP_COLLECTION_ID_HISTORY
 export const ENDPOINT = process.env.REACT_APP_APPWRITE_ENDPOINT;
 export const PROJECT_ID = process.env.REACT_APP_APPWRITE_PROJECT_ID;
 // src/appwriteConfig.js (ADD THIS LINE)
-
+export const COLLECTION_ID_WATCH_LATER = process.env.REACT_APP_COLLECTION_ID_WATCH_LATER; // <-- ADD THIS

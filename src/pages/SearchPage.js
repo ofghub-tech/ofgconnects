@@ -1,45 +1,88 @@
-// src/pages/SearchPage.js
-import React from 'react';
-import { useLocation } from 'react-router-dom';
-import Feed from '../components/Feed';
-
-// Helper function to parse query parameters
-function useQuery() {
-    return new URLSearchParams(useLocation().search);
-}
+// src/pages/SearchPage.js (CRASH-PROOF VERSION)
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { databases } from '../appwriteConfig';
+import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
+import { Query } from 'appwrite';
+import VideoCard from '../components/VideoCard';
 
 const SearchPage = () => {
-    const query = useQuery();
-    const searchTerm = query.get('q');
+    const [searchParams] = useSearchParams();
+    const queryStr = searchParams.get('q');
+    const [videos, setVideos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null); // NEW: Track errors
+
+    useEffect(() => {
+        const performSearch = async () => {
+            if (!queryStr) {
+                setVideos([]);
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            setError(null); // Reset error before new search
+
+            try {
+                const response = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTION_ID_VIDEOS,
+                    [
+                        Query.or([
+                            Query.search('title', queryStr),
+                            Query.search('username', queryStr),
+                            Query.search('tags', queryStr)
+                        ])
+                    ]
+                );
+                setVideos(response.documents);
+            } catch (err) {
+                console.error("Search failed:", err);
+                // Save the error message to display it on screen
+                setError(err.message || "An unexpected error occurred");
+            }
+            setLoading(false);
+        };
+
+        performSearch();
+    }, [queryStr]);
 
     return (
-        <div className="w-full">
-            
-            {/* --- MODIFIED: Page Header --- */}
-            <div className="border-b border-gray-200 bg-white p-6 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                    Search results for: 
-                    <span className="italic text-blue-600 dark:text-blue-400 ml-2">\"{searchTerm}\"</span>
+        <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+            <div className="max-w-7xl mx-auto">
+                <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+                    Search Results for: <span className="text-blue-600 dark:text-blue-400">"{queryStr}"</span>
                 </h1>
-                {!searchTerm && (
-                    <p className="mt-2 text-red-500">No search term provided.</p>
+
+                {/* --- NEW: Error Message Display --- */}
+                {error && (
+                    <div className="p-4 mb-6 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                        <p className="font-bold">Search Error:</p>
+                        <p>{error}</p>
+                    </div>
+                )}
+
+                {loading && (
+                    <div className="flex justify-center items-center h-64">
+                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                )}
+
+                {!loading && !error && videos.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {videos.map((video) => (
+                            <VideoCard key={video.$id} video={video} />
+                        ))}
+                    </div>
+                )}
+
+                {!loading && !error && videos.length === 0 && queryStr && (
+                    <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                        <p className="text-xl">No videos found for "{queryStr}"</p>
+                    </div>
                 )}
             </div>
-            {/* --- END MODIFICATION --- */}
-
-
-            {/* * We re-use the Feed component here.
-              * It already has logic to fetch videos based on the 'searchTerm' prop.
-              * We set category to null to search across all categories.
-            */}
-            {searchTerm ? (
-                <Feed searchTerm={searchTerm} category={null} />
-            ) : (
-                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                    <p>Please enter a search term in the search bar above.</p>
-                </div>
-            )}
-            
         </div>
     );
 };
