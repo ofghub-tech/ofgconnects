@@ -1,10 +1,20 @@
 // src/pages/HomePage.js
+//
+// UPDATED: This page now listens to the global BibleContext
+// and changes its layout.
+
 import React, { useState } from 'react';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VERSES } from '../appwriteConfig'; 
 import { Query } from 'appwrite';
 import Feed from '../components/Feed';
 import { useQuery } from '@tanstack/react-query';
+
+// --- 1. IMPORT BIBLE AND SIDEBAR COMPONENTS ---
+import { useBible } from '../context/BibleContext';
+import BiblePanel from '../components/BibleFeature/BiblePanel';
+import SuggestedVideos from '../components/SuggestedVideos';
+
 
 // --- Book Icon Component (This is the full code) ---
 const BookIcon = (props) => (
@@ -43,8 +53,10 @@ const fetchRandomVerse = async () => {
 
 // --- HomePage Component ---
 const HomePage = () => {
-    // This state is here in case you want to add a search bar *above* the feed later
     const [searchTerm] = useState(null); 
+    
+    // --- 2. GET BIBLE STATE ---
+    const { bibleView } = useBible();
 
     const { 
         data: dailyVerse, 
@@ -57,46 +69,75 @@ const HomePage = () => {
         refetchOnWindowFocus: false, // Don't refetch just for switching tabs
     });
 
-    return (
-        <div className="w-full">
-            
-            {/* 1. Daily Random Verse Section (Styled for light theme) */}
-            <div className="border-b border-gray-200 bg-amber-50 p-6 shadow-sm">
-                
-                {/* --- Section Header --- */}
-                <div className="flex items-center justify-center gap-3 mb-4">
-                    <BookIcon className="h-6 w-6 text-amber-700" />
-                    <h2 className="text-lg font-semibold text-amber-700">
-                        Verse of the Day
-                    </h2>
-                </div>
-                
-                {/* --- Verse Content --- */}
-                <div className="text-center min-h-[80px]"> {/* min-height prevents layout shift */}
-                    {verseLoading ? (
-                        <p className="italic text-gray-500">Loading today's inspiration...</p>
-                    ) : verseError ? (
-                        <p className="font-semibold text-red-500">Failed to load verse.</p>
-                    ) : (
-                        dailyVerse && (
-                            <blockquote className="relative">
-                                <p className="mb-3 text-2xl font-medium italic text-gray-800">
-                                    "{dailyVerse.verseText}"
-                                </p>
-                                <footer className="text-md font-semibold text-amber-800">
-                                    — {dailyVerse.reference}
-                                </footer>
-                            </blockquote>
-                        )
-                    )}
-                </div>
-            </div>
+    // --- 3. DYNAMIC GRID LOGIC ---
+    let gridColsClass = 'lg:grid-cols-3'; // Default: [Verse + Feed] + [Suggested]
+    if (bibleView === 'sidebar') {
+        gridColsClass = 'lg:grid-cols-2'; // [Verse + Feed] + [Bible]
+    } else if (bibleView === 'fullscreen') {
+        gridColsClass = 'lg:grid-cols-1'; // [Bible] only
+    }
 
-            {/* 2. Main Video Feed */}
-            {/* --- THIS IS THE FIX --- */}
-            <Feed searchTerm={searchTerm} category="general" /> 
-            {/* --- END FIX --- */}
+    return (
+        // --- 4. APPLY DYNAMIC GRID ---
+        <div className={`max-w-screen-xl mx-auto grid grid-cols-1 lg:gap-x-6 gap-y-6 p-4 sm:p-6 lg:p-8 ${gridColsClass}`}>
             
+            {/* --- COLUMN 1: Main Content (Verse + Feed) --- */}
+            {/* This column is HIDDEN in fullscreen mode */}
+            {bibleView !== 'fullscreen' && (
+                <div className={bibleView === 'sidebar' ? 'lg:col-span-1' : 'lg:col-span-2'}>
+                    
+                    {/* 1. Daily Random Verse Section */}
+                    <div className="border-b border-gray-200 bg-amber-50 p-6 shadow-sm rounded-lg mb-6">
+                        
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                            <BookIcon className="h-6 w-6 text-amber-700" />
+                            <h2 className="text-lg font-semibold text-amber-700">
+                                Verse of the Day
+                            </h2>
+                        </div>
+                        
+                        <div className="text-center min-h-[80px]"> {/* min-height prevents layout shift */}
+                            {verseLoading ? (
+                                <p className="italic text-gray-500">Loading today's inspiration...</p>
+                            ) : verseError ? (
+                                <p className="font-semibold text-red-500">Failed to load verse.</p>
+                            ) : (
+                                dailyVerse && (
+                                    <blockquote className="relative">
+                                        <p className="mb-3 text-2xl font-medium italic text-gray-800">
+                                            "{dailyVerse.verseText}"
+                                        </p>
+                                        <footer className="text-md font-semibold text-amber-800">
+                                            — {dailyVerse.reference}
+                                        </footer>
+                                    </blockquote>
+                                )
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 2. Main Video Feed */}
+                    <Feed searchTerm={searchTerm} category="general" /> 
+                    
+                </div>
+            )}
+
+            {/* --- COLUMN 2: Suggested Videos (Only for 'closed' view) --- */}
+            {bibleView === 'closed' && (
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                    <SuggestedVideos />
+                </div>
+            )}
+
+            {/* --- COLUMN 3: Bible Panel (For 'sidebar' and 'fullscreen' view) --- */}
+            {bibleView !== 'closed' && (
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                     <div className="w-full h-full min-h-[500px] lg:h-[80vh]">
+                        <BiblePanel />
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

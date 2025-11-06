@@ -5,8 +5,8 @@ import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// 1. Import the new provider
 import { NotificationProvider } from './context/NotificationContext';
+import { BibleProvider } from './context/BibleContext'; // <-- 1. IMPORT
 
 const queryClient = new QueryClient();
 
@@ -15,9 +15,11 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* 2. Wrap the App component */}
         <NotificationProvider>
-          <App />
+          {/* 2. Wrap your App in the BibleProvider */}
+          <BibleProvider>
+            <App />
+          </BibleProvider>
         </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
