@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
-import { useAuth } from '../context/AuthContext';
-import {
-    DATABASE_ID,
+import { useAuth } from '../context/AuthContext'; // <-- ADDED
+import { 
+    DATABASE_ID, 
     COLLECTION_ID_VIDEOS,
-    COLLECTION_ID_HISTORY,
-    COLLECTION_ID_WATCH_LATER // <-- NEW IMPORT
+    COLLECTION_ID_HISTORY // <-- ADDED
 } from '../appwriteConfig';
 import { ID, Query, Permission, Role } from 'appwrite';
 import Comments from '../components/Comments';
@@ -15,6 +14,9 @@ import FollowButton from '../components/FollowButton';
 import LikeButton from '../components/LikeButton';
 import ShareButton from '../components/ShareButton';
 import SuggestedVideos from '../components/SuggestedVideos';
+
+// Key must match the one in OfflinePage.js
+const WATCH_LATER_KEY = 'ofg_watch_later_list';
 
 // --- Icon for "Save" Button ---
 const BookmarkIcon = (props) => (
@@ -29,102 +31,41 @@ const BookmarkIconSolid = (props) => (
     </svg>
 );
 
+
 const WatchPage = () => {
     const { videoId } = useParams();
-    const { user } = useAuth();
+    const { user } = useAuth(); // <-- Get user for logging history
     const navigate = useNavigate();
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // --- NEW STATE FOR WATCH LATER ---
     const [isSaved, setIsSaved] = useState(false);
-    const [savedDocId, setSavedDocId] = useState(null); // To know which document to delete
-    const [isTogglingSave, setIsTogglingSave] = useState(false); // Prevent double-clicks
 
-    // --- NEW: Check if video is already saved in Appwrite ---
-    useEffect(() => {
-        const checkSavedStatus = async () => {
-            // If user is not logged in, they can't have a cloud-saved list
-            if (!user || !videoId) {
-                setIsSaved(false);
-                setSavedDocId(null);
-                return;
-            }
-
-            try {
-                const response = await databases.listDocuments(
-                    DATABASE_ID,
-                    COLLECTION_ID_WATCH_LATER,
-                    [
-                        Query.equal('userId', user.$id),
-                        Query.equal('videoId', videoId),
-                        Query.limit(1)
-                    ]
-                );
-                if (response.total > 0) {
-                    setIsSaved(true);
-                    setSavedDocId(response.documents[0].$id);
-                } else {
-                    setIsSaved(false);
-                    setSavedDocId(null);
-                }
-            } catch (error) {
-                console.error("Failed to check watch later status:", error);
-            }
-        };
-        checkSavedStatus();
-    }, [user, videoId]);
-
-    // --- NEW: Toggle Save Function (Cloud Sync) ---
-    const handleToggleSave = async () => {
-        if (!user) {
-            alert("Please log in to save videos to Watch Later.");
-            return;
-        }
-        // Prevent spamming the button while it's processing
-        if (isTogglingSave) return;
-
-        setIsTogglingSave(true);
-        try {
-            if (isSaved && savedDocId) {
-                // Remove from Watch Later
-                await databases.deleteDocument(
-                    DATABASE_ID,
-                    COLLECTION_ID_WATCH_LATER,
-                    savedDocId
-                );
-                setIsSaved(false);
-                setSavedDocId(null);
-            } else {
-                // Add to Watch Later
-                const response = await databases.createDocument(
-                    DATABASE_ID,
-                    COLLECTION_ID_WATCH_LATER,
-                    ID.unique(),
-                    {
-                        userId: user.$id,
-                        videoId: videoId
-                    },
-                    [
-                        Permission.read(Role.user(user.$id)),
-                        Permission.write(Role.user(user.$id))
-                    ]
-                );
-                setIsSaved(true);
-                setSavedDocId(response.$id);
-            }
-        } catch (error) {
-            console.error("Failed to toggle watch later:", error);
-            alert("Failed to update Watch Later list. Please try again.");
-        }
-        setIsTogglingSave(false);
+    // --- Utility function to manage Watch Later list ---
+    const checkSavedStatus = (id) => {
+        const savedList = JSON.parse(localStorage.getItem(WATCH_LATER_KEY) || '[]');
+        return savedList.includes(id);
     };
 
-    // --- HISTORY LOGGING LOGIC (UNCHANGED) ---
+    const toggleSavedStatus = (id) => {
+        let savedList = JSON.parse(localStorage.getItem(WATCH_LATER_KEY) || '[]');
+        if (savedList.includes(id)) {
+            savedList = savedList.filter(vId => vId !== id);
+            setIsSaved(false);
+        } else {
+            savedList.push(id);
+            setIsSaved(true);
+        }
+        localStorage.setItem(WATCH_LATER_KEY, JSON.stringify(savedList));
+    };
+
+    // --- HISTORY LOGGING LOGIC ---
     const logVideoView = async (userId, videoId) => {
-        if (!userId) return;
+        if (!userId) return; 
 
         try {
+            // Check if user has already logged a view for this video recently (e.g., last 5 minutes)
             const existingView = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
@@ -132,10 +73,10 @@ const WatchPage = () => {
                     Query.equal('userId', userId),
                     Query.equal('videoId', videoId),
                     Query.orderDesc('$createdAt'),
-                    Query.limit(1)
+                    Query.limit(1) 
                 ]
             );
-
+            
             if (existingView.total > 0) {
                 const lastViewTime = new Date(existingView.documents[0].$createdAt);
                 const fiveMinutes = 5 * 60 * 1000;
@@ -144,6 +85,7 @@ const WatchPage = () => {
                 }
             }
 
+            // Log the new view
             await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
@@ -175,7 +117,7 @@ const WatchPage = () => {
                     videoId
                 );
                 setVideo(response);
-                // Note: checkSavedStatus is now handled by its own useEffect above
+                setIsSaved(checkSavedStatus(response.$id));
 
                 // --- LOG VIEW HERE ---
                 if (user) {
@@ -188,51 +130,52 @@ const WatchPage = () => {
             setLoading(false);
         };
         getVideo();
-    }, [videoId, navigate, user]);
+    }, [videoId, navigate, user]); // Include 'user' in dependency array
 
     // --- ENHANCED Tailwind Class Definitions ---
     const actionButtonClasses = `
         flex items-center justify-center gap-2
-        py-2 px-4 h-9 rounded-full
+        py-2 px-4 h-9 rounded-full 
         font-medium text-sm text-neutral-800
         bg-gray-100 hover:bg-gray-200
-        dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600
         transition-colors duration-200 ease-in-out
         whitespace-nowrap
-        disabled:opacity-50 disabled:cursor-not-allowed
     `;
     const saveButtonClasses = `
         ${actionButtonClasses}
-        ${isSaved ? 'bg-gray-200 font-semibold dark:bg-gray-600' : ''}
+        ${isSaved ? 'bg-gray-200 font-semibold' : ''}
     `;
 
     // --- Loading and Not Found States ---
     if (loading) {
         return (
-            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
-                <p className="text-xl text-neutral-500 dark:text-gray-400">Loading video...</p>
+            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white">
+                <p className="text-xl text-neutral-500">Loading video...</p>
             </div>
         );
     }
     if (!video) {
         return (
-            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
+            <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white">
                 <p className="text-xl text-red-600">Video not found or failed to load.</p>
             </div>
         );
     }
 
+
     // --- Render Watch Page ---
     return (
-        <div className="w-full bg-white text-neutral-900 font-sans p-4 sm:p-6 lg:p-8 dark:bg-gray-900 dark:text-gray-100">
+        <div className="w-full bg-white text-neutral-900 font-sans p-4 sm:p-6 lg:p-8">
             <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-3 lg:gap-x-6 gap-y-6">
 
                 {/* --- 1. Main Content (Left Column) --- */}
                 <div className="lg:col-span-2">
-
+                    
+                    {/* --- Video Player (FIXED: autoPlay removed) --- */}
                     <div className="w-full aspect-video rounded-lg bg-black mb-4 overflow-hidden">
                         <video
                             controls
+                            // Removed autoPlay to fix browser errors
                             src={video.videoUrl}
                             className="w-full h-full"
                         >
@@ -240,18 +183,20 @@ const WatchPage = () => {
                         </video>
                     </div>
 
-                    <h1 className="mb-3 text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {/* --- Video Title --- */}
+                    <h1 className="mb-3 text-xl sm:text-2xl font-bold text-gray-900">
                         {video.title}
                     </h1>
 
+                    {/* --- Creator Info & Actions Layout --- */}
                     {video.username && (
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3">
-
+                            
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-blue-600 rounded-full flex justify-center items-center text-xl font-bold text-white shrink-0">
                                     {video.username.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-base font-semibold text-neutral-800 dark:text-gray-200">
+                                <span className="text-base font-semibold text-neutral-800">
                                     {video.username}
                                 </span>
                                 <FollowButton creatorId={video.userId} creatorName={video.username} />
@@ -260,13 +205,10 @@ const WatchPage = () => {
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <LikeButton videoId={video.$id} initialLikeCount={video.likeCount || 0} />
                                 <ShareButton videoId={video.$id} videoTitle={video.title} />
-
-                                {/* --- UPDATED SAVE BUTTON --- */}
                                 <button
                                     className={saveButtonClasses}
-                                    onClick={handleToggleSave}
-                                    disabled={isTogglingSave}
-                                    title={!user ? 'Log in to save' : (isSaved ? 'Remove from Watch Later' : 'Save to Watch Later')}
+                                    onClick={() => toggleSavedStatus(video.$id)}
+                                    title={isSaved ? 'Remove from Save List' : 'Add to Save List'}
                                 >
                                     {isSaved
                                         ? <BookmarkIconSolid className="h-5 w-5" />
@@ -277,19 +219,21 @@ const WatchPage = () => {
                             </div>
                         </div>
                     )}
-
-                    <div className="mt-4 p-4 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700">
-                        <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap dark:text-gray-300">
+                    
+                    {/* --- Video Description Box --- */}
+                    <div className="mt-4 p-4 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg cursor-pointer">
+                        <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
                             {video.description || 'No description provided.'}
                         </p>
                     </div>
+                    
+                    <hr className="border-t border-gray-200 my-6" />
 
-                    <hr className="border-t border-gray-200 my-6 dark:border-gray-700" />
-
+                    {/* --- Comments Section --- */}
                     <Comments videoId={videoId} />
 
                 </div>
-
+                
                 {/* --- 2. Suggested Videos (Right Column) --- */}
                 <div className="lg:col-span-1">
                     <SuggestedVideos currentVideo={video} />
