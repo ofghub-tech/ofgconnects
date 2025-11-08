@@ -27,8 +27,7 @@ import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage'; // <-- ADD THIS
 // --- END NEW PAGE IMPORT ---
 
-// --- (ProtectedRoute and AppLayout components - No change) ---
-// ... (paste the existing components here)
+// --- (ProtectedRoute - No change) ---
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
     if (!user) {
@@ -36,17 +35,20 @@ const ProtectedRoute = ({ children }) => {
     }
     return children;
 };
+
+// --- (AppLayout - MODIFIED FOR GLASS UI) ---
 const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
     return (
-        // Added dark:bg-gray-900
-        <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-900">
+        // --- FIX 1: Set the base background color that will show through the glass ---
+        // We use bg-gray-100 dark:bg-gray-950 as the *main* app background
+        <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-950">
             <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Header toggleSidebar={toggleSidebar} />
-                {/* --- THIS IS THE CHANGE --- */}
-                {/* Added dark:bg-gray-950 */}
-                <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-950">
-                {/* --- END CHANGE --- */}
+                
+                {/* --- FIX 2: Remove the background from <main> so it's transparent --- */}
+                {/* The content will scroll over the main app background */}
+                <main className="flex-1 overflow-y-auto">
                     {children}
                 </main>
             </div>
@@ -63,14 +65,7 @@ function App() {
         setIsSidebarOpen(prev => !prev);
     };
 
-    if (loading) {
-        return (
-            // Added dark:bg-gray-950 and dark:text-gray-300
-            <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
-                <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Loading application...</p>
-            </div>
-        );
-    }
+    /* --- THIS BLOCK IS NOW REMOVED (FIX for BUG 1) --- */
 
     return (
         <Router>

@@ -1,12 +1,19 @@
 // src/pages/LoginPage.js
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Navigate } from 'react-router-dom';
-// NO LONGER NEEDED: import './LoginPage.css';
+// --- ADD useLocation ---
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 
 const LoginPage = () => {
     const { user, loginUser, registerUser, googleLogin } = useAuth();
     const navigate = useNavigate();
+
+    // --- (FIX for BUG 3) ---
+    const location = useLocation();
+    // Get the page the user came from, or default to '/home'
+    const from = location.state?.from?.pathname || '/home';
+    // --- END FIX ---
+
     const [isLoginView, setIsLoginView] = useState(true);
     const [error, setError] = useState('');
 
@@ -25,7 +32,9 @@ const LoginPage = () => {
             } else {
                 await registerUser(email, password, name);
             }
-            navigate('/home');
+            // --- (FIX for BUG 3) ---
+            // Redirect to the page they were trying to go to
+            navigate(from, { replace: true });
         } catch (error) {
             console.error('Failed to login/register:', error);
             setError(error.message || 'An error occurred. Please try again.');
@@ -34,16 +43,19 @@ const LoginPage = () => {
 
     const handleGoogleLogin = async () => {
         try {
-            await googleLogin();
-            // Note: Appwrite redirects, so navigate() here might not be strictly needed
+            // --- (FIX for BUG 3) ---
+            // Pass the 'from' path to the googleLogin function
+            await googleLogin(from);
         } catch (error) {
             setError(error.message || 'Failed to login with Google.');
         }
     };
 
-    // If user is already logged in, redirect to home
+    // If user is already logged in, redirect
     if (user) {
-        return <Navigate to="/home" />;
+        // --- (FIX for BUG 3) ---
+        // Send them to the page they were trying to go to
+        return <Navigate to={from} replace />;
     }
 
     return (

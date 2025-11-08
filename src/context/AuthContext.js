@@ -85,15 +85,23 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const googleLogin = async () => {
+    const googleLogin = async (
+        redirectTo = 'http://localhost:3000/home' // <-- Default redirect
+    ) => {
         try {
+            // --- THIS IS THE FIX (BUG 3) ---
+            // Use the passed 'redirectTo' path
+            const successUrl = new URL(redirectTo, window.location.origin).href;
+            const failureUrl = new URL('/', window.location.origin).href;
+            // --- END FIX ---
+
             // This will trigger the Google login popup
             await account.createOAuth2Session(
                 'google',
-                'http://localhost:3000/home', // URL to redirect to on success
-                'http://localhost:3000/'      // URL to redirect to on failure
+                successUrl, // <-- Use the dynamic success URL
+                failureUrl  // <-- Use the dynamic failure URL
             );
-            // After success, Appwrite redirects to /home,
+            // After success, Appwrite redirects to the successUrl,
             // our useEffect will run and set the user.
         } catch (error) {
             console.error('Failed to login with Google:', error);
