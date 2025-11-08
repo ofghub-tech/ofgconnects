@@ -1,120 +1,166 @@
 // src/pages/ShortsWatchPage.js
-import React, { useState, useEffect, useRef } from 'react'; // <-- Import useRef
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
+import { Query } from 'appwrite';
+import ShortsVideoCard from '../components/ShortsVideoCard'; // <-- IMPORT OUR CARD
 
 const ShortsWatchPage = () => {
-    const { videoId } = useParams();
+    const { videoId } = useParams(); // The video ID the user clicked on
     const navigate = useNavigate();
-    const [video, setVideo] = useState(null);
+    
+    const [videos, setVideos] = useState([]); // Holds the list of all shorts
+    const [currentIndex, setCurrentIndex] = useState(0); // Which video is active
     const [loading, setLoading] = useState(true);
-    const videoRef = useRef(null); // <-- Add a ref for the video element
+    
+    // --- THIS IS THE FIX (PART 1) ---
+    // We must track if the user has interacted to allow unmuted autoplay
+    const [hasUserInteracted, setHasUserInteracted] = useState(false);
+    // --- END FIX ---
+    
+    const [isScrolling, setIsScrolling] = useState(false);
+    const scrollTimeoutRef = useRef(null);
 
+    // Fetch ALL shorts, but put the one the user clicked on FIRST.
     useEffect(() => {
-        const getVideo = async () => {
+        const fetchVideos = async () => {
             setLoading(true);
             try {
-                const response = await databases.getDocument(
+                const initialVideo = await databases.getDocument(
                     DATABASE_ID,
                     COLLECTION_ID_VIDEOS,
                     videoId
                 );
-                setVideo(response);
+                const response = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTION_ID_VIDEOS,
+                    [
+                        Query.equal('category', 'shorts'),
+                        Query.notEqual('$id', videoId),
+                        Query.orderDesc('$createdAt')
+                    ]
+                );
+                setVideos([initialVideo, ...response.documents]);
+                setCurrentIndex(0);
             } catch (error) {
-                console.error('Failed to fetch video:', error);
-                navigate('/home'); 
+                console.error("Failed to fetch shorts:", error);
+                navigate('/shorts');
             }
             setLoading(false);
         };
-        getVideo();
+        fetchVideos();
     }, [videoId, navigate]);
 
-    // --- NEW: useEffect for handling video playback ---
-    useEffect(() => {
-        // This effect runs when the 'video' state is finally set
-        if (video && videoRef.current) {
-            
-            // We programmatically try to play the video.
-            const playPromise = videoRef.current.play();
+    // This "unlocks" unmuted autoplay after the first scroll
+    const handleUserInteraction = () => {
+        if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+        }
+    };
 
-            if (playPromise !== undefined) {
-                // .play() returns a promise, which we must handle
-                playPromise.catch(error => {
-                    // This catch block handles the exact "interrupted" error
-                    // by simply ignoring it, as it's a benign error
-                    // caused by fast navigation or the component unmounting.
-                    if (error.name === 'AbortError') {
-                        console.log('Video play was aborted (this is normal).');
-                    } else {
-                        console.error('Error attempting to play video:', error);
-                    }
-                });
+    // Handle the mouse wheel scroll for navigation
+    const handleWheel = (e) => {
+        // Stop the main layout from scrolling
+        e.stopPropagation(); 
+        
+        // --- THIS IS THE FIX (PART 1) ---
+        // Register the scroll as a user interaction
+        handleUserInteraction();
+        // --- END FIX ---
+        
+        if (isScrolling) return;
+
+        const scrollDelta = e.deltaY;
+
+        if (scrollDelta > 5) {
+            // --- SCROLLING DOWN (Next Video) ---
+            if (currentIndex < videos.length - 1) {
+                setIsScrolling(true);
+                setCurrentIndex(prev => prev + 1);
+            }
+        } else if (scrollDelta < -5) {
+            // --- SCROLLING UP (Previous Video) ---
+            if (currentIndex > 0) {
+                setIsScrolling(true);
+                setCurrentIndex(prev => prev - 1);
             }
         }
 
-        // --- Cleanup Function ---
-        // This runs when the component unmounts
-        return () => {
-            if (videoRef.current) {
-                videoRef.current.pause(); // <-- Explicitly pause the video
-            }
-        };
-    }, [video]); // <-- This effect depends on the 'video' state
-    // --- END of new effect ---
+        // Debounce: Reset the scrolling lock after 700ms (matches animation)
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = setTimeout(() => {
+            setIsScrolling(false);
+        }, 700); // Animation duration
+    };
 
+    // --- (getCardStyle - No changes) ---
+    const getCardStyle = (index) => {
+        const relativeIndex = index - currentIndex;
+        
+        if (relativeIndex < 0) {
+            return {
+                transform: 'translateX(-100%) scale(0.8)',
+                opacity: 0,
+                zIndex: 10 - Math.abs(relativeIndex)
+            };
+        }
+        if (relativeIndex === 0) {
+            return {
+                transform: 'translateX(0) scale(1)',
+                opacity: 1,
+                zIndex: 10
+            };
+        }
+        if (relativeIndex === 1) {
+            return {
+                transform: 'translateX(0) scale(0.9)',
+                opacity: 0.7,
+                zIndex: 9
+            };
+        }
+        return {
+            transform: `translateX(0) scale(${0.9 - (relativeIndex * 0.1)})`,
+            opacity: 0.4,
+            zIndex: 8 - relativeIndex
+        };
+    };
 
     if (loading) {
         return (
-            // --- MODIFIED: Added dark mode classes ---
-            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-950">
-                <p className="text-xl text-neutral-500 dark:text-gray-400">Loading Short...</p>
-            </div>
-        );
-    }
-
-    if (!video) {
-        return (
-            // --- MODIFIED: Added dark mode classes ---
-            <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-950">
-                <p className="text-xl text-red-600">Short not found.</p>
+            <div className="flex items-center justify-center h-full w-full bg-black">
+                <p className="text-xl text-neutral-500 dark:text-gray-400">Loading Shorts...</p>
             </div>
         );
     }
     
     return (
-        // --- MODIFIED: Added dark mode classes ---
-        // The page is already dark, so we just ensure consistency.
-        <div className="flex items-center justify-center h-screen w-full bg-neutral-900 text-white dark:bg-black">
-            <button 
-                onClick={() => navigate('/shorts')} 
-                // --- MODIFIED: Added dark mode classes ---
-                className="absolute top-4 left-4 text-white text-xl p-2 rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-700 z-10"
-            >
-                &larr; Close
-            </button>
-            
-            <div className="flex flex-col items-center gap-3 w-full">
-                
-                <div className="h-[90vh] max-h-[800px] flex justify-center items-center w-full">
-                    <video 
-                        ref={videoRef} // <-- Attach the ref here
-                        controls 
-                        // autoPlay // <-- REMOVE the autoPlay attribute
-                        loop
-                        muted // <-- KEEP muted, it's essential for autoplay policies
-                        src={video.videoUrl} 
-                        className="h-full w-auto aspect-[9/16] bg-black rounded-xl"
+        <div 
+            className="h-full w-full bg-black text-white relative flex justify-center items-center overflow-hidden"
+            onWheel={handleWheel} // The scroll handler is on this container
+        >
+            {/* Wrapper for all video cards */}
+            <div className="h-full w-full relative">
+                {videos.map((video, index) => (
+                    // Each card is in an animated wrapper
+                    <div
+                        key={video.$id}
+                        className="absolute h-full w-full transition-all duration-700 ease-in-out"
+                        style={getCardStyle(index)}
                     >
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-                
-                <div className="p-3 text-center">
-                    <h2 className="text-xl font-bold">{video.title}</h2>
-                    {/* --- MODIFIED: Added dark mode classes --- */}
-                    <p className="text-sm text-neutral-400 dark:text-neutral-500">@{video.username}</p>
-                </div>
+                        <ShortsVideoCard 
+                            video={video}
+                            isActive={index === currentIndex}
+                            onClose={() => navigate('/shorts')}
+                            // --- THIS IS THE FIX (PART 1) ---
+                            // Pass the interaction state to the card
+                            hasUserInteracted={hasUserInteracted}
+                            // --- END FIX ---
+                        />
+                    </div>
+                ))}
             </div>
         </div>
     );

@@ -92,7 +92,10 @@ const VideoCard = ({ video }) => {
                         {video.username || 'Unknown Channel'}
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <span>{formatViews(video.views || 0)}</span>
+                        {/* --- THIS IS THE FIX --- */}
+                        {/* Changed video.views to video.view_count */}
+                        <span>{formatViews(video.view_count || 0)}</span>
+                        {/* --- END FIX --- */}
                         <span>•</span>
                         <span>{timeSince(video.$createdAt)}</span>
                     </div>
