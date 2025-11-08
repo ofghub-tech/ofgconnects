@@ -4,8 +4,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import { BibleProvider } from './context/BibleContext'; // <-- 1. IMPORT
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// import { NotificationProvider } from './context/NotificationContext'; // <-- DELETE THIS LINE
 
 const queryClient = new QueryClient();
 
@@ -14,9 +14,9 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* <NotificationProvider> // <-- DELETE THIS LINE */}
+        <BibleProvider> {/* <-- 2. WRAP APP */}
           <App />
-        {/* </NotificationProvider> // <-- DELETE THIS LINE */}
+        </BibleProvider> {/* <-- 3. WRAP APP */}
       </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>

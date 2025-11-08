@@ -10,22 +10,24 @@ import WatchPage from './pages/WatchPage';
 import MySpacePage from './pages/MySpacePage';
 import FollowingPage from './pages/FollowingPage';
 import ShortsPage from './pages/ShortsPage';
-// import OfflinePage from './pages/OfflinePage'; // <-- REMOVED
 import SongsPage from './pages/SongsPage';
 import KidsPage from './pages/KidsPage';
-import Sidebar from './components/Sidebar'; 
-import HistoryPage from './pages/HistoryPage';
-import WatchLaterPage from './pages/WatchLaterPage';
-import LikedVideosPage from './pages/LikedVideosPage';
-import ShortsWatchPage from './pages/ShortsWatchPage'; 
-import VideoRouter from './components/VideoRouter';     
-import SongsWatchPage from './pages/SongsWatchPage';
-import KidsWatchPage from './pages/KidsWatchPage';
-
-// --- NEW PAGE IMPORT ---
+import Sidebar from './components/Sidebar'; // <-- ORIGINAL IMPORT
+import HistoryPage from './pages/HistoryPage'; // <-- ORIGINAL IMPORT
+import WatchLaterPage from './pages/WatchLaterPage'; // <-- ORIGINAL IMPORT
+import LikedVideosPage from './pages/LikedVideosPage'; // <-- ORIGINAL IMPORT
+import ShortsWatchPage from './pages/ShortsWatchPage'; // <-- ORIGINAL IMPORT
+import VideoRouter from './components/VideoRouter'; // <-- ORIGINAL IMPORT
+import SongsWatchPage from './pages/SongsWatchPage'; // <-- ORIGINAL IMPORT
+import KidsWatchPage from './pages/KidsWatchPage'; // <-- ORIGINAL IMPORT
 import SearchPage from './pages/SearchPage';
-import SettingsPage from './pages/SettingsPage'; // <-- ADD THIS
-// --- END NEW PAGE IMPORT ---
+import SettingsPage from './pages/SettingsPage'; 
+
+// --- 1. IMPORT BIBLE COMPONENTS AND CONTEXT ---
+import { useBible } from './context/BibleContext';
+import GlobalBibleIcon from './components/BibleFeature/GlobalBibleIcon';
+import BiblePanel from './components/BibleFeature/BiblePanel';
+// --- END IMPORTS ---
 
 // --- (ProtectedRoute - No change) ---
 const ProtectedRoute = ({ children }) => {
@@ -36,18 +38,13 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
-// --- (AppLayout - MODIFIED FOR GLASS UI) ---
+// --- (AppLayout - No change) ---
 const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
     return (
-        // --- FIX 1: Set the base background color that will show through the glass ---
-        // We use bg-gray-100 dark:bg-gray-950 as the *main* app background
         <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-950">
             <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Header toggleSidebar={toggleSidebar} />
-                
-                {/* --- FIX 2: Remove the background from <main> so it's transparent --- */}
-                {/* The content will scroll over the main app background */}
                 <main className="flex-1 overflow-y-auto">
                     {children}
                 </main>
@@ -61,14 +58,40 @@ function App() {
     const { loading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+    // --- 2. GET BIBLE VIEW STATE ---
+    const { bibleView } = useBible();
+
     const toggleSidebar = () => {
         setIsSidebarOpen(prev => !prev);
     };
 
-    /* --- THIS BLOCK IS NOW REMOVED (FIX for BUG 1) --- */
-
     return (
         <Router>
+            {/* --- 3. ADD BIBLE UI (GLOBAL) --- */}
+            {/* The Icon is always rendered */}
+            <GlobalBibleIcon />
+
+            {/* Render the panel in sidebar mode */}
+            {bibleView === 'sidebar' && (
+                <div className="fixed top-0 right-0 z-40 h-full w-full max-w-md p-4 pt-20">
+                    {/* pt-20 to account for header height, adjust as needed */}
+                    <div className="h-full w-full">
+                         <BiblePanel />
+                    </div>
+                </div>
+            )}
+
+            {/* Render the panel in fullscreen mode */}
+            {bibleView === 'fullscreen' && (
+                <div className="fixed inset-0 z-40 bg-gray-100 dark:bg-gray-950 p-4 pt-20">
+                     {/* pt-20 to account for header height, adjust as needed */}
+                     <div className="h-full w-full max-w-4xl mx-auto">
+                        <BiblePanel />
+                     </div>
+                </div>
+            )}
+            {/* --- END BIBLE UI --- */}
+
             <Routes>
                 {/* Public Route: Login Page */}
                 <Route path="/" element={<LoginPage />} />
@@ -84,10 +107,7 @@ function App() {
                                 {/* Nested Routes for the main content area */}
                                 <Routes>
                                     <Route path="/home" element={<HomePage />} />
-
-                                    {/* --- NEW SEARCH ROUTE --- */}
                                     <Route path="/search" element={<SearchPage />} />
-                                    {/* --- END NEW ROUTE --- */}
                                     
                                     {/* --- VIDEO ROUTING LOGIC --- */}
                                     <Route path="/watch/:videoId" element={<VideoRouter />} /> 
@@ -103,13 +123,11 @@ function App() {
                                     <Route path="/watch-later" element={<WatchLaterPage />} />
                                     <Route path="/liked-videos" element={<LikedVideosPage />} />
                                     <Route path="/shorts" element={<ShortsPage />} />
-                                    {/* <Route path="/offline" element={<OfflinePage />} /> */}{/* <-- REMOVED */}
                                     <Route path="/songs" element={<SongsPage />} />
                                     <Route path="/kids" element={<KidsPage />} />
 
                                     {/* --- NEW SETTINGS ROUTE --- */}
                                     <Route path="/settings" element={<SettingsPage />} />
-                                    {/* --- END NEW SETTINGS ROUTE --- */}
                                     
                                     <Route path="*" element={<Navigate to="/home" />} /> 
                                 </Routes>

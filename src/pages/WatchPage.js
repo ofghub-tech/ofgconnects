@@ -7,7 +7,7 @@ import {
     DATABASE_ID,
     COLLECTION_ID_VIDEOS,
     COLLECTION_ID_HISTORY,
-    COLLECTION_ID_WATCH_LATER // <-- NEW IMPORT
+    COLLECTION_ID_WATCH_LATER
 } from '../appwriteConfig';
 import { ID, Query, Permission, Role } from 'appwrite';
 import Comments from '../components/Comments';
@@ -16,18 +16,24 @@ import LikeButton from '../components/LikeButton';
 import ShareButton from '../components/ShareButton';
 import SuggestedVideos from '../components/SuggestedVideos';
 
-// --- Icon for "Save" Button ---
+// --- Icons (no change) ---
 const BookmarkIcon = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
 );
-// --- Filled Icon for "Saved" state ---
 const BookmarkIconSolid = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
 );
+const EyeIcon = (props) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+);
+// --- End Icons ---
 
 const WatchPage = () => {
     const { videoId } = useParams();
@@ -36,21 +42,19 @@ const WatchPage = () => {
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // --- NEW STATE FOR WATCH LATER ---
+    // --- State for Watch Later (no change) ---
     const [isSaved, setIsSaved] = useState(false);
-    const [savedDocId, setSavedDocId] = useState(null); // To know which document to delete
-    const [isTogglingSave, setIsTogglingSave] = useState(false); // Prevent double-clicks
+    const [savedDocId, setSavedDocId] = useState(null); 
+    const [isTogglingSave, setIsTogglingSave] = useState(false);
 
-    // --- NEW: Check if video is already saved in Appwrite ---
+    // --- Check Saved Status (no change) ---
     useEffect(() => {
         const checkSavedStatus = async () => {
-            // If user is not logged in, they can't have a cloud-saved list
             if (!user || !videoId) {
                 setIsSaved(false);
                 setSavedDocId(null);
                 return;
             }
-
             try {
                 const response = await databases.listDocuments(
                     DATABASE_ID,
@@ -75,19 +79,16 @@ const WatchPage = () => {
         checkSavedStatus();
     }, [user, videoId]);
 
-    // --- NEW: Toggle Save Function (Cloud Sync) ---
+    // --- Toggle Save Function (no change) ---
     const handleToggleSave = async () => {
         if (!user) {
             alert("Please log in to save videos to Watch Later.");
             return;
         }
-        // Prevent spamming the button while it's processing
         if (isTogglingSave) return;
-
         setIsTogglingSave(true);
         try {
             if (isSaved && savedDocId) {
-                // Remove from Watch Later
                 await databases.deleteDocument(
                     DATABASE_ID,
                     COLLECTION_ID_WATCH_LATER,
@@ -96,7 +97,6 @@ const WatchPage = () => {
                 setIsSaved(false);
                 setSavedDocId(null);
             } else {
-                // Add to Watch Later
                 const response = await databases.createDocument(
                     DATABASE_ID,
                     COLLECTION_ID_WATCH_LATER,
@@ -120,11 +120,12 @@ const WatchPage = () => {
         setIsTogglingSave(false);
     };
 
-    // --- HISTORY LOGGING LOGIC (UNCHANGED) ---
-    const logVideoView = async (userId, videoId) => {
+    // --- History Logging (MODIFIED to increment view_count) ---
+    const logVideoView = async (userId, videoId, currentViewCount) => {
         if (!userId) return;
 
         try {
+            // Check if user viewed this video recently
             const existingView = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
@@ -140,10 +141,12 @@ const WatchPage = () => {
                 const lastViewTime = new Date(existingView.documents[0].$createdAt);
                 const fiveMinutes = 5 * 60 * 1000;
                 if (Date.now() - lastViewTime.getTime() < fiveMinutes) {
-                    return;
+                    return null; // Don't log view
                 }
             }
 
+            // --- NEW LOGIC ---
+            // 1. Log to history
             await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
@@ -158,13 +161,27 @@ const WatchPage = () => {
                 ]
             );
 
+            // 2. Increment and update the view_count on the video document
+            const newViewCount = (currentViewCount || 0) + 1;
+            await databases.updateDocument(
+                DATABASE_ID,
+                COLLECTION_ID_VIDEOS,
+                videoId,
+                {
+                    view_count: newViewCount // Update the count
+                }
+            );
+
+            // 3. Return the new count so the UI can update instantly
+            return newViewCount;
+
         } catch (e) {
             console.error('Failed to log video view:', e);
+            return null;
         }
     };
-    // --- END HISTORY LOGGING LOGIC ---
 
-
+    // --- Main useEffect (MODIFIED to use new view logic) ---
     useEffect(() => {
         const getVideo = async () => {
             setLoading(true);
@@ -174,12 +191,18 @@ const WatchPage = () => {
                     COLLECTION_ID_VIDEOS,
                     videoId
                 );
-                setVideo(response);
-                // Note: checkSavedStatus is now handled by its own useEffect above
+                setVideo(response); // This response now includes `view_count`
 
-                // --- LOG VIEW HERE ---
+                // --- MODIFIED LOG VIEW HERE ---
                 if (user) {
-                    logVideoView(user.$id, videoId);
+                    // Pass the current view count to the logging function
+                    const newCount = await logVideoView(user.$id, videoId, response.view_count);
+                    
+                    // If the count was updated, update our local state
+                    // so the new count shows instantly.
+                    if (newCount) {
+                        setVideo(prevVideo => ({ ...prevVideo, view_count: newCount }));
+                    }
                 }
 
             } catch (error) {
@@ -187,10 +210,11 @@ const WatchPage = () => {
             }
             setLoading(false);
         };
+        
         getVideo();
-    }, [videoId, navigate, user]);
+    }, [videoId, navigate, user]); // Dependencies are correct
 
-    // --- ENHANCED Tailwind Class Definitions ---
+    // --- Tailwind Classes (no change) ---
     const actionButtonClasses = `
         flex items-center justify-center gap-2
         py-2 px-4 h-9 rounded-full
@@ -206,7 +230,7 @@ const WatchPage = () => {
         ${isSaved ? 'bg-gray-200 font-semibold dark:bg-gray-600' : ''}
     `;
 
-    // --- Loading and Not Found States ---
+    // --- Loading/Error States (no change) ---
     if (loading) {
         return (
             <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
@@ -244,9 +268,16 @@ const WatchPage = () => {
                         {video.title}
                     </h1>
 
+                    {/* --- View Count Display (MODIFIED) --- */}
+                    <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-gray-400 mb-3">
+                        <EyeIcon className="w-5 h-5" />
+                        <span>
+                            {(video.view_count || 0).toLocaleString()} {video.view_count === 1 ? 'view' : 'views'}
+                        </span>
+                    </div>
+
                     {video.username && (
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3">
-
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-blue-600 rounded-full flex justify-center items-center text-xl font-bold text-white shrink-0">
                                     {video.username.charAt(0).toUpperCase()}
@@ -260,8 +291,6 @@ const WatchPage = () => {
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <LikeButton videoId={video.$id} initialLikeCount={video.likeCount || 0} />
                                 <ShareButton videoId={video.$id} videoTitle={video.title} />
-
-                                {/* --- UPDATED SAVE BUTTON --- */}
                                 <button
                                     className={saveButtonClasses}
                                     onClick={handleToggleSave}
@@ -278,6 +307,7 @@ const WatchPage = () => {
                         </div>
                     )}
 
+                    {/* (Rest of the file is unchanged) */}
                     <div className="mt-4 p-4 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700">
                         <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap dark:text-gray-300">
                             {video.description || 'No description provided.'}
@@ -287,14 +317,12 @@ const WatchPage = () => {
                     <hr className="border-t border-gray-200 my-6 dark:border-gray-700" />
 
                     <Comments videoId={videoId} />
-
                 </div>
 
                 {/* --- 2. Suggested Videos (Right Column) --- */}
                 <div className="lg:col-span-1">
                     <SuggestedVideos currentVideo={video} />
                 </div>
-
             </div>
         </div>
     );
