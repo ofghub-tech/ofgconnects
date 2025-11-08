@@ -1,6 +1,7 @@
 // src/components/Feed.js
 import React, { useEffect } from 'react';
-import { databases } from '../appwriteConfig';
+// --- NOTE: We now import 'functions' (assuming appwriteConfig.js was updated) ---
+import { databases, functions } from '../appwriteConfig'; 
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -9,33 +10,47 @@ import VideoCard from './VideoCard'; // Import reusable component
 
 const VIDEOS_PER_PAGE = 12;
 
+// --- NEW/UPDATED fetchVideos FUNCTION for Semantic Search ---
 const fetchVideos = async ({ pageParam = 0, queryKey }) => {
-    // --- Read 'category' from the queryKey ---
     const [, searchTerm, category] = queryKey;
     
-    let queries = [
-        Query.orderDesc('$createdAt'),
-        Query.limit(VIDEOS_PER_PAGE),
-        Query.offset(pageParam)
-    ];
+    let queries = [];
+    let videoIds = null; // Variable to hold IDs from semantic search
 
-    // --- NEW LOGIC: Add filters ONLY if they exist ---
-
-    // 1. Add category filter (if one is passed)
-    // This will be 'general' on Home, 'songs' on Songs,
-    // and 'null' (skipped) on Search.
-    if (category) {
-        queries.unshift(Query.equal('category', category)); 
-    }
-
-    // 2. Add search filter (if one is passed)
-    // This will be 'null' (skipped) on Home/Songs/Kids,
-    // and will be active on Search.
+    // --- SEMANTIC SEARCH LOGIC ---
     if (searchTerm) {
-        // Appwrite will search ALL searchable attributes
-        queries.unshift(Query.search('title', searchTerm));
+        // 1. Call our new Appwrite Function
+        const searchPayload = JSON.stringify({ searchQuery: searchTerm });
+        
+        // PASTE YOUR FUNCTION ID HERE
+        const result = await functions.createExecution(
+            'YOUR_SEMANTIC_SEARCH_FUNCTION_ID', 
+            searchPayload
+        );
+        
+        const responseData = JSON.parse(result.response);
+        videoIds = responseData.videoIds; // Get the list of IDs
+
+        if (!videoIds || videoIds.length === 0) {
+            return []; // No search results found
+        }
+        
+        // 2. Create a query to get *only* those IDs
+        // Appwrite will fetch the actual documents for these IDs
+        queries.push(Query.equal('$id', videoIds));
+        
+    } else {
+        // --- ORIGINAL LOGIC (Home/Category Pages) ---
+        queries.push(Query.orderDesc('$createdAt'));
+        if (category) {
+            queries.push(Query.equal('category', category)); 
+        }
     }
-    // --- END NEW LOGIC ---
+    // --- END NEW/OLD LOGIC ---
+
+    // Add pagination to all queries
+    queries.push(Query.limit(VIDEOS_PER_PAGE));
+    queries.push(Query.offset(pageParam));
 
 
     const response = await databases.listDocuments(
@@ -44,12 +59,20 @@ const fetchVideos = async ({ pageParam = 0, queryKey }) => {
         queries 
     );
     
+    // 3. Re-sort documents based on the semantic search order (if applicable)
+    // This is required because Appwrite's Query.equal does not guarantee array order.
+    if (searchTerm && videoIds) {
+        response.documents.sort((a, b) => 
+            videoIds.indexOf(a.$id) - videoIds.indexOf(b.$id)
+        );
+    }
+
     return response.documents;
 };
+// --- END NEW/UPDATED fetchVideos FUNCTION ---
 
-// --- FIX: Removed the default prop ' = general' ---
+
 const Feed = ({ searchTerm, category }) => {
-// --- END FIX ---
     const { ref, inView } = useInView();
 
     const {

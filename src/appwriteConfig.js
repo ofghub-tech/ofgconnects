@@ -1,5 +1,5 @@
 // src/appwriteConfig.js
-import { Client, Account, Databases, Storage, } from 'appwrite';
+import { Client, Account, Databases, Storage, Functions } from 'appwrite'; // <-- ADD Functions here
 
 export const client = new Client();
 
@@ -10,6 +10,7 @@ client
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
+export const functions = new Functions(client); // <-- ADD THIS LINE
 
 // Export the IDs from the .env file
 export const DATABASE_ID = process.env.REACT_APP_DATABASE_ID;

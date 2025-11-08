@@ -5,7 +5,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import Modal from './Modal';
 import UploadForm from './UploadForm';
 
-// --- Icons ---
+// --- NEW/UPDATED Icons (Including the Menu Icon) ---
+const MenuIcon = (props) => (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+);
 const SearchIcon = (props) => (
     <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -32,6 +39,9 @@ const Header = ({ toggleSidebar }) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    
+    // --- NEW: State for mobile search ---
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
     const handleLogout = async () => {
         try {
@@ -55,25 +65,32 @@ const Header = ({ toggleSidebar }) => {
         if (searchQuery.trim()) {
             navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
             setSearchQuery(''); 
+            setIsMobileSearchOpen(false); // Close mobile search on submit
         }
     };
 
     return (
         <>
             {/* --- HEADER (MODIFIED FOR GLASS UI) --- */}
-            {/* We change bg-white to bg-white/80, add backdrop-blur-md, and make the border semi-transparent */}
             <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200/50 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-gray-800/50 dark:bg-gray-900/80">
                 
-                {/* --- Left Section --- */}
-                <div className="flex items-center gap-4">
+                {/* --- Left Section (Sidebar Toggle FIX) --- */}
+                <div className="flex items-center gap-2">
+                    {/* --- NEW: Sidebar Toggle Button --- */}
+                    <button 
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                        onClick={toggleSidebar} // <-- THE FIX (Calls the prop from App.js)
+                    >
+                        <MenuIcon className="h-6 w-6" />
+                    </button>
+                    
                     <div className="cursor-pointer" onClick={() => navigate('/home')}>
                         <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">OFGConnects</span>
                     </div>
                 </div>
 
-                {/* --- Middle Section (Search) --- */}
+                {/* --- Middle Section (Desktop Search) --- */}
                 <div className="hidden flex-1 justify-center px-4 sm:flex sm:max-w-2xl">
-                    {/* The search bar style is fine as-is, it contrasts with the glass */}
                     <form className="flex w-full overflow-hidden rounded-full border border-gray-300 dark:border-gray-700" onSubmit={handleSearchSubmit}>
                         <input 
                             type="text" 
@@ -95,6 +112,15 @@ const Header = ({ toggleSidebar }) => {
                 {/* Right Section */}
                 <div className="flex items-center gap-2 sm:gap-4">
                     
+                    {/* --- NEW: Mobile Search Button --- */}
+                    <button 
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 sm:hidden" 
+                        title="Search"
+                        onClick={() => setIsMobileSearchOpen(true)}
+                    >
+                        <SearchIcon className="h-6 w-6" />
+                    </button>
+
                     {/* Upload Button */}
                     <button 
                         className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800" 
@@ -114,8 +140,6 @@ const Header = ({ toggleSidebar }) => {
                         </button>
                         
                         {isUserDropdownOpen && (
-                            // --- MODIFIED FOR GLASS UI ---
-                            // Dropdown also gets the glass effect
                             <div className="absolute right-0 top-12 z-10 w-64 rounded-md border border-gray-200/50 bg-white/80 shadow-lg backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80">
                                 {/* User Info Header */}
                                 <div className="flex items-center gap-3 p-4">
@@ -152,6 +176,29 @@ const Header = ({ toggleSidebar }) => {
                         )}
                     </div>
                 </div>
+
+                {/* --- NEW: Mobile Search Bar (Covers Header) --- */}
+                {isMobileSearchOpen && (
+                    <div className="absolute left-0 top-0 z-20 flex h-full w-full items-center border-b border-gray-200/50 bg-white/95 px-4 backdrop-blur-md dark:border-gray-800/50 dark:bg-gray-900/95 sm:hidden">
+                        <form className="flex w-full" onSubmit={handleSearchSubmit}>
+                            <input 
+                                type="text" 
+                                placeholder="Search..." 
+                                className="flex-1 border-none bg-transparent px-2 py-2.5 text-base text-gray-900 outline-none dark:text-gray-100 dark:placeholder-gray-400" 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                            />
+                            <button 
+                                type="button"
+                                className="px-4 text-gray-600 dark:text-gray-300"
+                                onClick={() => setIsMobileSearchOpen(false)}
+                            >
+                                Cancel
+                            </button>
+                        </form>
+                    </div>
+                )}
             </header>
 
             {/* Upload Modal (No change) */}
