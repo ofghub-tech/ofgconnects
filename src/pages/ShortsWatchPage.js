@@ -4,25 +4,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
-import ShortsVideoCard from '../components/ShortsVideoCard'; // <-- IMPORT OUR CARD
+import ShortsVideoCard from '../components/ShortsVideoCard';
 
 const ShortsWatchPage = () => {
-    const { videoId } = useParams(); // The video ID the user clicked on
+    const { videoId } = useParams();
     const navigate = useNavigate();
     
-    const [videos, setVideos] = useState([]); // Holds the list of all shorts
-    const [currentIndex, setCurrentIndex] = useState(0); // Which video is active
+    const [videos, setVideos] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     
-    // --- THIS IS THE FIX (PART 1) ---
-    // We must track if the user has interacted to allow unmuted autoplay
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
-    // --- END FIX ---
     
     const [isScrolling, setIsScrolling] = useState(false);
     const scrollTimeoutRef = useRef(null);
 
-    // Fetch ALL shorts, but put the one the user clicked on FIRST.
+    // Fetch ALL shorts (No change)
     useEffect(() => {
         const fetchVideos = async () => {
             setLoading(true);
@@ -41,8 +38,13 @@ const ShortsWatchPage = () => {
                         Query.orderDesc('$createdAt')
                     ]
                 );
-                setVideos([initialVideo, ...response.documents]);
+                
+                const allVideos = [initialVideo, ...response.documents];
+                const validVideos = allVideos.filter(video => video); 
+
+                setVideos(validVideos);
                 setCurrentIndex(0);
+
             } catch (error) {
                 console.error("Failed to fetch shorts:", error);
                 navigate('/shorts');
@@ -52,22 +54,17 @@ const ShortsWatchPage = () => {
         fetchVideos();
     }, [videoId, navigate]);
 
-    // This "unlocks" unmuted autoplay after the first scroll
+    // handleUserInteraction (No change)
     const handleUserInteraction = () => {
         if (!hasUserInteracted) {
             setHasUserInteracted(true);
         }
     };
 
-    // Handle the mouse wheel scroll for navigation
+    // Handle Wheel (No change)
     const handleWheel = (e) => {
-        // Stop the main layout from scrolling
         e.stopPropagation(); 
-        
-        // --- THIS IS THE FIX (PART 1) ---
-        // Register the scroll as a user interaction
         handleUserInteraction();
-        // --- END FIX ---
         
         if (isScrolling) return;
 
@@ -83,20 +80,19 @@ const ShortsWatchPage = () => {
             // --- SCROLLING UP (Previous Video) ---
             if (currentIndex > 0) {
                 setIsScrolling(true);
-                setCurrentIndex(prev => prev - 1);
+                setCurrentIndex(prev => prev - 1); 
             }
         }
 
-        // Debounce: Reset the scrolling lock after 700ms (matches animation)
         if (scrollTimeoutRef.current) {
             clearTimeout(scrollTimeoutRef.current);
         }
         scrollTimeoutRef.current = setTimeout(() => {
             setIsScrolling(false);
-        }, 700); // Animation duration
+        }, 700);
     };
 
-    // --- (getCardStyle - No changes) ---
+    // (getCardStyle - No changes)
     const getCardStyle = (index) => {
         const relativeIndex = index - currentIndex;
         
@@ -130,37 +126,43 @@ const ShortsWatchPage = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full w-full bg-black">
-                <p className="text-xl text-neutral-500 dark:text-gray-400">Loading Shorts...</p>
+            // --- (FIX) Updated loading screen for dark/light theme ---
+            <div className="flex items-center justify-center h-full w-full bg-white dark:bg-black">
+                <p className="text-xl text-neutral-600 dark:text-gray-400">Loading Shorts...</p>
             </div>
+            // --- (END FIX) ---
         );
     }
     
+    // (Render - No change)
+    // This container remains 'bg-black' for the theater experience
     return (
         <div 
             className="h-full w-full bg-black text-white relative flex justify-center items-center overflow-hidden"
-            onWheel={handleWheel} // The scroll handler is on this container
+            onWheel={handleWheel}
         >
-            {/* Wrapper for all video cards */}
             <div className="h-full w-full relative">
-                {videos.map((video, index) => (
-                    // Each card is in an animated wrapper
-                    <div
-                        key={video.$id}
-                        className="absolute h-full w-full transition-all duration-700 ease-in-out"
-                        style={getCardStyle(index)}
-                    >
-                        <ShortsVideoCard 
-                            video={video}
-                            isActive={index === currentIndex}
-                            onClose={() => navigate('/shorts')}
-                            // --- THIS IS THE FIX (PART 1) ---
-                            // Pass the interaction state to the card
-                            hasUserInteracted={hasUserInteracted}
-                            // --- END FIX ---
-                        />
-                    </div>
-                ))}
+                {videos.map((video, index) => {
+                    if (!video || !video.$id) {
+                        console.warn(`ShortsWatchPage: Skipping render for invalid video at index ${index}.`);
+                        return null; 
+                    }
+                    
+                    return (
+                        <div
+                            key={video.$id} 
+                            className="absolute h-full w-full transition-all duration-700 ease-in-out"
+                            style={getCardStyle(index)}
+                        >
+                            <ShortsVideoCard 
+                                video={video}
+                                isActive={index === currentIndex}
+                                onClose={() => navigate('/shorts')}
+                                hasUserInteracted={hasUserInteracted}
+                            />
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
