@@ -4,6 +4,8 @@ import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import VideoCard from '../components/VideoCard';
+// --- 1. IMPORT INTERSECTION OBSERVER ---
+import { useInView } from 'react-intersection-observer';
 
 const HomePage = () => {
     const [videos, setVideos] = useState([]);
@@ -13,7 +15,14 @@ const HomePage = () => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [lastId, setLastId] = useState(null);
     const [hasMore, setHasMore] = useState(true);
-    const ITEMS_PER_PAGE = 10; // Change this to 2 or 3 to test it easily if you have few videos!
+    const ITEMS_PER_PAGE = 12; // Increased slightly for better infinite feel
+
+    // --- 2. SETUP OBSERVER HOOK ---
+    // 'ref' goes on the invisible element at the bottom
+    // 'inView' tells us if that element is visible on screen
+    const { ref, inView } = useInView({
+        threshold: 0.5, // Trigger when 50% of the loader is visible
+    });
 
     const fetchVideos = async (isLoadMore = false) => {
         if (isLoadMore) {
@@ -23,13 +32,11 @@ const HomePage = () => {
         }
 
         try {
-            // Base queries: Newest first, limit to ITEMS_PER_PAGE
             let queries = [
                 Query.orderDesc('$createdAt'),
                 Query.limit(ITEMS_PER_PAGE)
             ];
 
-            // If we are loading more, start AFTER the last video we currently have
             if (isLoadMore && lastId) {
                 queries.push(Query.cursorAfter(lastId));
             }
@@ -41,17 +48,14 @@ const HomePage = () => {
             );
 
             if (isLoadMore) {
-                // Append new videos to the existing list
                 setVideos(prev => [...prev, ...response.documents]);
             } else {
-                // First load: just set the list
                 setVideos(response.documents);
             }
 
-            // If we got fewer items than we asked for, we've reached the end
+            // If we got fewer items than requested, we've reached the end.
             setHasMore(response.documents.length === ITEMS_PER_PAGE);
 
-            // Save the ID of the last item for the next fetch
             if (response.documents.length > 0) {
                 setLastId(response.documents[response.documents.length - 1].$id);
             }
@@ -64,30 +68,35 @@ const HomePage = () => {
         setLoadingMore(false);
     };
 
-    // Initial fetch on component mount
+    // Initial fetch
     useEffect(() => {
         fetchVideos(false);
     }, []);
+
+    // --- 3. INFINITE SCROLL TRIGGER ---
+    // Whenever 'inView' becomes true, if we aren't already loading and have more data, fetch next page.
+    useEffect(() => {
+        if (inView && hasMore && !loading && !loadingMore) {
+            fetchVideos(true);
+        }
+    }, [inView, hasMore, loading, loadingMore]);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen dark:bg-gray-900 transition-colors duration-200">
             <div className="max-w-7xl mx-auto">
 
-                {/* --- Feed Header --- */}
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                         Discover
                     </h1>
                 </div>
 
-                {/* --- Loading State (Initial) --- */}
                 {loading && (
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
                 )}
 
-                {/* --- Video Grid --- */}
                 {!loading && (
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -96,38 +105,32 @@ const HomePage = () => {
                             ))}
                         </div>
 
-                        {/* --- Empty State --- */}
                         {videos.length === 0 && (
                             <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
                                 No videos found. Be the first to upload!
                             </p>
                         )}
 
-                        {/* --- Load More Button --- */}
+                        {/* --- 4. INVISIBLE TRIGGER ELEMENT --- */}
+                        {/* This element sits at the bottom. When it scrolls into view, the effect above fires. */}
                         {hasMore && videos.length > 0 && (
-                            <div className="flex justify-center mt-10">
-                                <button
-                                    onClick={() => fetchVideos(true)}
-                                    disabled={loadingMore}
-                                    className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 focus:outline-none disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors dark:bg-blue-600 dark:hover:bg-blue-700"
-                                >
-                                    {loadingMore ? (
-                                        <span className="flex items-center gap-2">
-                                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                            Loading...
-                                        </span>
-                                    ) : (
-                                        "Load More Videos"
-                                    )}
-                                </button>
+                            <div ref={ref} className="flex justify-center mt-10 py-4">
+                                {loadingMore ? (
+                                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                        <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                        <span>Loading more...</span>
+                                    </div>
+                                ) : (
+                                    // Optional: Keep a subtle "invisible" height so the observer hits it easily
+                                    <div className="h-10 w-full" /> 
+                                )}
                             </div>
                         )}
 
-                         {/* --- End of Results Message --- */}
                         {!hasMore && videos.length > 0 && (
-                             <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
-                                 You've reached the end of the feed.
-                             </p>
+                            <p className="text-center text-gray-500 dark:text-gray-400 mt-10 pb-10">
+                                You've reached the end of the feed.
+                            </p>
                         )}
                     </>
                 )}

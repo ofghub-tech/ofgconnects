@@ -7,9 +7,8 @@ import { Query } from 'appwrite';
 import { Link } from 'react-router-dom';
 import UploadForm from '../components/UploadForm';
 import Modal from '../components/Modal';
-
-// Keep the old CSS import if it styles your video list
-// import './MySpacePage.css'; // <-- REMOVED THIS LINE TO FIX THE ERROR
+// --- 1. IMPORT OBSERVER ---
+import { useInView } from 'react-intersection-observer';
 
 const MySpacePage = () => {
     const { user } = useAuth();
@@ -17,41 +16,89 @@ const MySpacePage = () => {
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
 
-    const fetchUserVideos = async () => {
-        setLoading(true);
+    // --- 2. PAGINATION STATE ---
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastId, setLastId] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const ITEMS_PER_PAGE = 24; // Good number for grid layouts (divisible by 2, 3, 4)
+
+    // --- 3. OBSERVER HOOK ---
+    const { ref, inView } = useInView({ threshold: 0.1 });
+
+    const fetchUserVideos = async (isLoadMore = false) => {
+        if (!user) return;
+
+        if (isLoadMore) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
+
         try {
+            let queries = [
+                Query.equal('userId', user.$id),
+                Query.orderDesc('$createdAt'),
+                Query.limit(ITEMS_PER_PAGE)
+            ];
+
+            // If loading more, start AFTER the last video we have
+            if (isLoadMore && lastId) {
+                queries.push(Query.cursorAfter(lastId));
+            }
+
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
-                [Query.equal('userId', user.$id), Query.orderDesc('$createdAt')]
+                queries
             );
-            setVideos(response.documents);
+
+            if (isLoadMore) {
+                setVideos(prev => [...prev, ...response.documents]);
+            } else {
+                setVideos(response.documents);
+            }
+
+            // Update pagination state
+            setHasMore(response.documents.length === ITEMS_PER_PAGE);
+            if (response.documents.length > 0) {
+                setLastId(response.documents[response.documents.length - 1].$id);
+            }
+
         } catch (error) {
             console.error('Failed to fetch user videos:', error);
         }
         setLoading(false);
+        setLoadingMore(false);
     };
 
+    // Initial fetch when user loads
     useEffect(() => {
-        if (user) {
-            fetchUserVideos();
-        }
+        fetchUserVideos(false);
     }, [user]);
 
-    // --- THIS IS THE NEW HANDLER ---
-    // This function will be passed to UploadForm
-    // It will be called after a successful upload
+    // Infinite scroll trigger
+    useEffect(() => {
+        if (inView && hasMore && !loading && !loadingMore) {
+            fetchUserVideos(true);
+        }
+    }, [inView, hasMore, loading, loadingMore]);
+
+    // --- HANDLER FOR SUCCESSFUL UPLOAD ---
     const handleUploadComplete = () => {
-        setShowUploadModal(false); // Close the modal
-        fetchUserVideos(); // Refresh the video list
+        setShowUploadModal(false);
+        // Reset pagination state to start fresh from the top
+        setLastId(null);
+        setHasMore(true);
+        // Re-fetch the first page immediately to show the new video
+        fetchUserVideos(false);
     };
 
     return (
-        // --- MODIFIED: Added dark mode classes ---
         <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full dark:bg-gray-900">
             <div className="max-w-4xl mx-auto">
+                
+                {/* --- HEADER & UPLOAD BUTTON --- */}
                 <div className="flex justify-between items-center mb-6">
-                    {/* --- MODIFIED: Added dark mode classes --- */}
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Space</h1>
                     <button
                         onClick={() => setShowUploadModal(true)}
@@ -61,47 +108,72 @@ const MySpacePage = () => {
                     </button>
                 </div>
 
-                {/* --- This Modal now shows the new form --- */}
+                {/* --- UPLOAD MODAL --- */}
                 {showUploadModal && (
                     <Modal onClose={() => setShowUploadModal(false)}>
-                        <UploadForm 
-                            onUploadSuccess={handleUploadComplete} // <-- PASS THE HANDLER
-                        />
+                        <UploadForm onUploadSuccess={handleUploadComplete} />
                     </Modal>
                 )}
 
-                {/* --- MODIFIED: Added dark mode classes --- */}
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4 dark:text-gray-200">My Videos</h2>
+                
+                {/* --- LOADING STATE (INITIAL) --- */}
                 {loading ? (
-                    // --- MODIFIED: Added dark mode classes ---
-                    <p className="dark:text-gray-300">Loading videos...</p>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {videos.length === 0 ? (
-                            // --- MODIFIED: Added dark mode classes ---
-                            <p className="text-gray-500 col-span-full dark:text-gray-400">You haven't uploaded any videos yet.</p>
-                        ) : (
-                            videos.map((video) => (
-                                <Link to={`/watch/${video.$id}`} key={video.$id} className="video-card-link group">
-                                    {/* --- MODIFIED: Added dark mode classes --- */}
-                                    <div className="bg-white rounded-lg shadow overflow-hidden transition-transform duration-300 group-hover:scale-105 dark:bg-gray-800">
-                                        <img
-                                            src={video.thumbnailUrl} // Use the new thumbnail URL
-                                            alt={video.title}
-                                            className="w-full h-32 object-cover"
-                                        />
-                                        <div className="p-4">
-                                            {/* --- MODIFIED: Added dark mode classes --- */}
-                                            <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
-                                                {video.title}
-                                            </h3>
-                                            {/* You can add more details here, like views or date */}
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))
-                        )}
+                    <div className="flex justify-center p-10">
+                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                     </div>
+                ) : (
+                    <>
+                        {/* --- VIDEO GRID --- */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {videos.length === 0 ? (
+                                <p className="text-gray-500 col-span-full dark:text-gray-400">
+                                    You haven't uploaded any videos yet.
+                                </p>
+                            ) : (
+                                videos.map((video) => (
+                                    <Link to={`/watch/${video.$id}`} key={video.$id} className="video-card-link group">
+                                        <div className="bg-white rounded-lg shadow overflow-hidden transition-transform duration-300 group-hover:scale-105 dark:bg-gray-800">
+                                            <div className="w-full h-32 bg-gray-200 overflow-hidden dark:bg-gray-700">
+                                                <img
+                                                    src={video.thumbnailUrl}
+                                                    alt={video.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+                                                    {video.title}
+                                                </h3>
+                                                {/* You could add views/date here if you want */}
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+
+                        {/* --- INFINITE SCROLL TRIGGER AREA --- */}
+                        {hasMore && videos.length > 0 && (
+                            <div ref={ref} className="flex justify-center mt-10 py-4">
+                                {loadingMore ? (
+                                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                        <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                        <span>Loading more...</span>
+                                    </div>
+                                ) : (
+                                    // Invisible trigger element
+                                    <div className="h-10 w-full" />
+                                )}
+                            </div>
+                        )}
+                        
+                        {!hasMore && videos.length > 0 && (
+                             <p className="text-center text-gray-500 dark:text-gray-400 mt-10 pb-10">
+                                End of your videos.
+                            </p>
+                        )}
+                    </>
                 )}
             </div>
         </div>

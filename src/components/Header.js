@@ -5,29 +5,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import Modal from './Modal';
 import UploadForm from './UploadForm';
 
-// --- NEW/UPDATED Icons (Including the Menu Icon) ---
-const MenuIcon = (props) => (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
-);
-const SearchIcon = (props) => (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-);
-const UploadIcon = (props) => (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="17"></line>
-    </svg>
-);
-const IconWrapper = (props) => (
-    <svg {...props} className={`h-5 w-5 ${props.className || ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {props.children}
-    </svg>
-);
+// --- (Icons remain unchanged) ---
+// MenuIcon is no longer needed, but keeping it doesn't hurt if you change your mind later.
+const MenuIcon = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="3" y1="12" x2="21" y2="12"></line> <line x1="3" y1="6" x2="21" y2="6"></line> <line x1="3" y1="18" x2="21" y2="18"></line> </svg> );
+const SearchIcon = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line> </svg> );
+const UploadIcon = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="17"></line> </svg> );
+const IconWrapper = (props) => ( <svg {...props} className={`h-5 w-5 ${props.className || ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> {props.children} </svg> );
 const SettingsIcon = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></IconWrapper>;
 const LogoutIcon = (props) => <IconWrapper {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></IconWrapper>;
 // --- (End Icons) ---
@@ -39,8 +22,6 @@ const Header = ({ toggleSidebar }) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    
-    // --- NEW: State for mobile search ---
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
     const handleLogout = async () => {
@@ -65,25 +46,22 @@ const Header = ({ toggleSidebar }) => {
         if (searchQuery.trim()) {
             navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
             setSearchQuery(''); 
-            setIsMobileSearchOpen(false); // Close mobile search on submit
+            setIsMobileSearchOpen(false);
         }
+    };
+
+    const handleUploadComplete = () => {
+        setIsUploadModalOpen(false); 
+        window.location.reload(); 
     };
 
     return (
         <>
-            {/* --- HEADER (MODIFIED FOR GLASS UI) --- */}
             <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200/50 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-gray-800/50 dark:bg-gray-900/80">
                 
-                {/* --- Left Section (Sidebar Toggle FIX) --- */}
+                {/* --- Left Section --- */}
                 <div className="flex items-center gap-2">
-                    {/* --- NEW: Sidebar Toggle Button --- */}
-                    <button 
-                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                        onClick={toggleSidebar} // <-- THE FIX (Calls the prop from App.js)
-                    >
-                        <MenuIcon className="h-6 w-6" />
-                    </button>
-                    
+                    {/* --- REMOVED: Sidebar Toggle Button --- */}
                     <div className="cursor-pointer" onClick={() => navigate('/home')}>
                         <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">OFGConnects</span>
                     </div>
@@ -108,11 +86,8 @@ const Header = ({ toggleSidebar }) => {
                     </form>
                 </div>
 
-
-                {/* Right Section */}
+                {/* --- Right Section --- */}
                 <div className="flex items-center gap-2 sm:gap-4">
-                    
-                    {/* --- NEW: Mobile Search Button --- */}
                     <button 
                         className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 sm:hidden" 
                         title="Search"
@@ -120,8 +95,6 @@ const Header = ({ toggleSidebar }) => {
                     >
                         <SearchIcon className="h-6 w-6" />
                     </button>
-
-                    {/* Upload Button */}
                     <button 
                         className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800" 
                         title="Upload Video"
@@ -141,7 +114,6 @@ const Header = ({ toggleSidebar }) => {
                         
                         {isUserDropdownOpen && (
                             <div className="absolute right-0 top-12 z-10 w-64 rounded-md border border-gray-200/50 bg-white/80 shadow-lg backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80">
-                                {/* User Info Header */}
                                 <div className="flex items-center gap-3 p-4">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white">
                                         {getAvatarInitial()}
@@ -151,10 +123,7 @@ const Header = ({ toggleSidebar }) => {
                                         <div className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email || ''}</div>
                                     </div>
                                 </div>
-                                
                                 <hr className="border-gray-100 dark:border-gray-700" />
-
-                                {/* Menu Links */}
                                 <nav className="py-2">
                                     <Link 
                                         to="/settings" 
@@ -177,7 +146,7 @@ const Header = ({ toggleSidebar }) => {
                     </div>
                 </div>
 
-                {/* --- NEW: Mobile Search Bar (Covers Header) --- */}
+                {/* --- Mobile Search Bar --- */}
                 {isMobileSearchOpen && (
                     <div className="absolute left-0 top-0 z-20 flex h-full w-full items-center border-b border-gray-200/50 bg-white/95 px-4 backdrop-blur-md dark:border-gray-800/50 dark:bg-gray-900/95 sm:hidden">
                         <form className="flex w-full" onSubmit={handleSearchSubmit}>
@@ -201,9 +170,8 @@ const Header = ({ toggleSidebar }) => {
                 )}
             </header>
 
-            {/* Upload Modal (No change) */}
             <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)}>
-                <UploadForm />
+                <UploadForm onUploadSuccess={handleUploadComplete} />
             </Modal>
         </>
     );

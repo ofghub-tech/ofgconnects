@@ -8,8 +8,7 @@ import {
 import { ID, Permission, Role, Query } from 'appwrite';
 import { useAuth } from '../context/AuthContext';
 
-// --- CommentForm Component ---
-// This is a reusable form for both new comments and replies
+// --- CommentForm Component (Unchanged) ---
 const CommentForm = ({ videoId, parent_id = null, onCommentPosted }) => {
     const { user } = useAuth();
     const [commentBody, setCommentBody] = useState('');
@@ -18,7 +17,6 @@ const CommentForm = ({ videoId, parent_id = null, onCommentPosted }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!commentBody.trim() || !user || isSubmitting) return;
-
         setIsSubmitting(true);
         try {
             const payload = {
@@ -26,37 +24,24 @@ const CommentForm = ({ videoId, parent_id = null, onCommentPosted }) => {
                 videoId: videoId,
                 username: user.name,
                 userId: user.$id,
-                parent_id: parent_id, // This is the new attribute
+                parent_id: parent_id,
             };
-
             const response = await databases.createDocument(
-                DATABASE_ID,
-                COLLECTION_ID_COMMENTS,
-                ID.unique(), // <-- This is the fix. No quotes. It's a function call.
-                payload,
-                [
-                    Permission.read(Role.any()),
-                    Permission.update(Role.user(user.$id)),
-                    Permission.delete(Role.user(user.$id))
-                ]
+                DATABASE_ID, COLLECTION_ID_COMMENTS, ID.unique(), payload,
+                [Permission.read(Role.any()), Permission.update(Role.user(user.$id)), Permission.delete(Role.user(user.$id))]
             );
-
             setCommentBody('');
-            onCommentPosted(response); // Send the new comment back to the parent
+            onCommentPosted(response);
         } catch (error) {
             console.error("Failed to post comment:", error);
-            alert(`Error: Could not post comment. \n\nDetails: ${error.message}`);
+            alert(`Error: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
     };
 
     if (!user) {
-        return (
-            <p className="mb-4 text-neutral-600 dark:text-gray-400">
-                Please <a href="/" className="text-blue-500 hover:underline dark:text-blue-400">log in</a> to comment.
-            </p>
-        );
+        return <p className="mb-4 text-neutral-600 dark:text-gray-400">Please <a href="/" className="text-blue-500 hover:underline dark:text-blue-400">log in</a> to comment.</p>;
     }
 
     return (
@@ -83,8 +68,7 @@ const CommentForm = ({ videoId, parent_id = null, onCommentPosted }) => {
     );
 };
 
-// --- CommentItem Component ---
-// This renders a single comment and its replies
+// --- CommentItem Component (Unchanged) ---
 const CommentItem = ({ comment, replies, videoId, onCommentPosted }) => {
     const [showReplyForm, setShowReplyForm] = useState(false);
 
@@ -105,31 +89,24 @@ const CommentItem = ({ comment, replies, videoId, onCommentPosted }) => {
                 <p className="text-base text-neutral-900 mt-1 whitespace-pre-wrap dark:text-gray-100">
                     {comment.content}
                 </p>
-                <button 
+                <button
                     onClick={() => setShowReplyForm(!showReplyForm)}
                     className="text-xs font-medium text-blue-600 dark:text-blue-400 self-start mt-2 hover:underline"
                 >
                     {showReplyForm ? 'Cancel' : 'Reply'}
                 </button>
-
                 {showReplyForm && (
                     <div className="mt-4">
-                        <CommentForm
-                            videoId={videoId}
-                            parent_id={comment.$id}
-                            onCommentPosted={handleReplyPosted}
-                        />
+                        <CommentForm videoId={videoId} parent_id={comment.$id} onCommentPosted={handleReplyPosted} />
                     </div>
                 )}
-
-                {/* Render nested replies */}
                 {replies.length > 0 && (
                     <div className="flex flex-col gap-6 mt-6 pl-6 border-l-2 border-gray-200 dark:border-gray-700">
                         {replies.map(reply => (
                             <CommentItem
                                 key={reply.$id}
                                 comment={reply}
-                                replies={[]} // You can make this recursive later if you want
+                                replies={[]}
                                 videoId={videoId}
                                 onCommentPosted={onCommentPosted}
                             />
@@ -141,78 +118,110 @@ const CommentItem = ({ comment, replies, videoId, onCommentPosted }) => {
     );
 };
 
-// --- Main Comments Component ---
+// --- Main Comments Component (UPDATED WITH PAGINATION) ---
 const Comments = ({ videoId }) => {
     const [allComments, setAllComments] = useState([]);
     const [loading, setLoading] = useState(true);
+    // --- PAGINATION STATE ---
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastId, setLastId] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const COMMENTS_PER_PAGE = 25; // Load 25 at a time
 
-    // Fetch all comments for the video
-    const fetchAllComments = async () => {
-        setLoading(true);
+    const fetchComments = async (isLoadMore = false) => {
+        if (isLoadMore) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
+
         try {
+            let queries = [
+                Query.equal('videoId', videoId),
+                Query.orderDesc('$createdAt'),
+                Query.limit(COMMENTS_PER_PAGE)
+            ];
+
+            if (isLoadMore && lastId) {
+                queries.push(Query.cursorAfter(lastId));
+            }
+
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_COMMENTS,
-                [
-                    Query.equal('videoId', videoId),
-                    Query.orderDesc('$createdAt'),
-                    Query.limit(500) // Fetch all comments to build the tree
-                ]
+                queries
             );
-            setAllComments(response.documents);
+
+            if (isLoadMore) {
+                // Avoid duplicates when appending
+                setAllComments(prev => {
+                    const existingIds = new Set(prev.map(c => c.$id));
+                    const newUnique = response.documents.filter(doc => !existingIds.has(doc.$id));
+                    return [...prev, ...newUnique];
+                });
+            } else {
+                setAllComments(response.documents);
+            }
+
+            setHasMore(response.documents.length === COMMENTS_PER_PAGE);
+            if (response.documents.length > 0) {
+                setLastId(response.documents[response.documents.length - 1].$id);
+            }
+
         } catch (error) {
             console.error("Failed to fetch comments:", error);
         }
         setLoading(false);
+        setLoadingMore(false);
     };
 
     useEffect(() => {
-        fetchAllComments();
+        fetchComments(false);
     }, [videoId]);
 
-    // Runs when any new comment (or reply) is posted
     const handleCommentPosted = (newComment) => {
         setAllComments(prev => [newComment, ...prev]);
     };
 
-    // This organizes the flat list into a nested tree
     const nestedComments = useMemo(() => {
         const commentMap = {};
         const topLevelComments = [];
 
-        for (const comment of allComments) {
-            commentMap[comment.$id] = { ...comment, replies: [] };
-        }
+        // Initialize map
+        allComments.forEach(c => {
+            commentMap[c.$id] = { ...c, replies: [] };
+        });
 
-        for (const comment of Object.values(commentMap)) {
-            if (comment.parent_id && commentMap[comment.parent_id]) {
-                commentMap[comment.parent_id].replies.push(comment);
-            } else {
-                topLevelComments.push(comment);
+        // Build tree. 
+        // IMPORTANT: If a reply is loaded BEFORE its parent (rare due to sort order, but possible),
+        // it currently won't show until the parent loads.
+        allComments.forEach(c => {
+            if (c.parent_id && commentMap[c.parent_id]) {
+                 commentMap[c.parent_id].replies.push(commentMap[c.$id]);
+            } else if (!c.parent_id) {
+                 // Only push if it's truly top-level OR if parent hasn't loaded yet (fallback)
+                 topLevelComments.push(commentMap[c.$id]);
             }
-        }
-        
-        for(const comment of topLevelComments) {
-            comment.replies.sort((a, b) => new Date(a.$createdAt) - new Date(b.$createdAt));
-        }
+        });
+
+        topLevelComments.sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt));
+        topLevelComments.forEach(c => c.replies.sort((a, b) => new Date(a.$createdAt) - new Date(b.$createdAt)));
+
         return topLevelComments;
     }, [allComments]);
 
     return (
         <div className="w-full text-neutral-900 dark:text-gray-100">
             <h3 className="mb-4 text-xl font-semibold dark:text-gray-100">
-                {allComments.length} {allComments.length === 1 ? 'Comment' : 'Comments'}
+                Comments
             </h3>
 
-            {/* Top-level comment form */}
             <CommentForm videoId={videoId} onCommentPosted={handleCommentPosted} />
 
-            {/* Comment List */}
             <hr className="border-t border-gray-200 my-6 dark:border-gray-700" />
+
             <div className="flex flex-col gap-6">
-                {loading && (
-                    <p className="text-neutral-500 dark:text-gray-400">Loading comments...</p>
-                )}
+                {loading && <p className="text-neutral-500 dark:text-gray-400">Loading comments...</p>}
 
                 {!loading && nestedComments.length === 0 && (
                     <p className="text-neutral-600 dark:text-gray-400">No comments yet. Be the first!</p>
@@ -227,6 +236,19 @@ const Comments = ({ videoId }) => {
                         onCommentPosted={handleCommentPosted}
                     />
                 ))}
+
+                {/* --- LOAD MORE BUTTON --- */}
+                {hasMore && (
+                    <div className="flex justify-center mt-4">
+                        <button
+                            onClick={() => fetchComments(true)}
+                            disabled={loadingMore}
+                            className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 disabled:opacity-50 dark:bg-gray-800 dark:text-blue-400 dark:hover:bg-gray-700"
+                        >
+                            {loadingMore ? 'Loading...' : 'Load more comments'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 // src/pages/HistoryPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { databases } from '../appwriteConfig';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -9,10 +9,12 @@ import {
 } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import VideoCard from '../components/VideoCard';
-import HistoryShortsCard from '../components/HistoryShortsCard'; // (No change)
+import HistoryShortsCard from '../components/HistoryShortsCard';
 import { Link } from 'react-router-dom';
+// --- 1. Import Observer ---
+import { useInView } from 'react-intersection-observer';
 
-// --- (HELPER 1: Format date labels - No change) ---
+// --- HELPER 1: Format date labels ---
 const getRelativeDate = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -30,35 +32,20 @@ const getRelativeDate = (dateString) => {
     return date.toLocaleDateString(undefined, options);
 };
 
-// --- (HELPER 2: Group videos by date and type - UPDATED) ---
+// --- HELPER 2: Group videos by date ---
 const groupVideosByDate = (videos) => {
-    if (!Array.isArray(videos)) {
-        console.error("groupVideosByDate expected an array, but got:", videos);
-        return {};
-    }
-    
-    // We now use `seenVideoIds` inside each date group
-    // to track duplicates *per day*.
+    if (!Array.isArray(videos)) return {};
+
     const grouped = videos.reduce((acc, video) => {
         const dateGroup = getRelativeDate(video.$createdAt);
-        
-        // Ensure acc[dateGroup] exists
         if (!acc[dateGroup]) {
-            acc[dateGroup] = { 
-                shorts: [], 
-                videos: [],
-                seenVideoIds: new Set() // <-- (FIX 1) Add Set for duplicate tracking
-            };
+            acc[dateGroup] = { shorts: [], videos: [], seenVideoIds: new Set() };
         }
 
-        // --- (FIX 2) Check if we've already added this video ID *for this day* ---
+        // Prevent duplicate videos appearing under the SAME date header
         if (acc[dateGroup].seenVideoIds.has(video.$id)) {
-            // If yes, skip it. Since the list is sorted by date,
-            // we are only keeping the *latest* one (the first one we see).
             return acc;
         }
-        
-        // --- (FIX 3) If it's new for this day, add it ---
         acc[dateGroup].seenVideoIds.add(video.$id);
 
         if (video.category === 'shorts') {
@@ -69,37 +56,47 @@ const groupVideosByDate = (videos) => {
         return acc;
     }, {});
 
-    // Clean up the `seenVideoIds` sets from the final object
+    // Cleanup Sets
     Object.keys(grouped).forEach(dateGroup => {
         delete grouped[dateGroup].seenVideoIds;
     });
-    
+
     return grouped;
 };
 
-
 const HistoryPage = () => {
     const { user } = useAuth();
-    const [groupedVideos, setGroupedVideos] = useState({});
+    // --- 2. New State for Pagination ---
+    const [fullHistoryList, setFullHistoryList] = useState([]); // Stores ALL fetched items
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
+    const [lastId, setLastId] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
 
-    // --- (fetchVideoDetails - No changes) ---
+    const ITEMS_PER_PAGE = 50; // Fetch 50 items at a time
+
+    // --- 3. Observer Hook ---
+    const { ref, inView } = useInView({ threshold: 0.1 });
+
+    // --- 4. Memoized Grouping ---
+    // Only re-group when the full list changes.
+    const groupedVideos = useMemo(() => {
+        return groupVideosByDate(fullHistoryList);
+    }, [fullHistoryList]);
+
     const fetchVideoDetails = async (historyDocs) => {
-        if (historyDocs.length === 0) {
-            return [];
-        }
+        if (historyDocs.length === 0) return [];
         try {
-            const videoIds = historyDocs.map(doc => doc.videoId); 
+            const videoIds = historyDocs.map(doc => doc.videoId);
+            // Appwrite 'equal' query only supports up to 100 values. 
+            // Since ITEMS_PER_PAGE is 50, we are safe here.
             const uniqueVideoIds = [...new Set(videoIds)];
 
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
-                [
-                    Query.equal('$id', uniqueVideoIds), 
-                    Query.limit(100)
-                ]
+                [Query.equal('$id', uniqueVideoIds), Query.limit(100)]
             );
 
             const videoMap = new Map();
@@ -107,64 +104,83 @@ const HistoryPage = () => {
                 videoMap.set(videoDoc.$id, videoDoc);
             });
 
-            const combinedHistory = historyDocs
-                .map(historyDoc => {
-                    const videoDetail = videoMap.get(historyDoc.videoId);
-                    if (!videoDetail) {
-                        return null; 
-                    }
-                    return {
-                        ...videoDetail, 
-                        $createdAt: historyDoc.$createdAt 
-                    };
-                })
-                .filter(Boolean); 
-
-            return combinedHistory;
+            // Combine history metadata ($createdAt) with actual video data
+            return historyDocs.map(historyDoc => {
+                const videoDetail = videoMap.get(historyDoc.videoId);
+                if (!videoDetail) return null;
+                return {
+                    ...videoDetail,
+                    $createdAt: historyDoc.$createdAt // IMPORTANT: Override video creation date with VIEW date
+                };
+            }).filter(Boolean);
 
         } catch (e) {
             console.error("Failed to fetch video details:", e);
-            setError("Could not load video details.");
             return [];
         }
     };
 
-    // --- (fetchHistory - No changes) ---
-    const fetchHistory = async () => {
+    const fetchHistory = async (isLoadMore = false) => {
         if (!user) return;
-        setLoading(true);
+        
+        if (isLoadMore) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
 
         try {
+            let queries = [
+                Query.equal('userId', user.$id),
+                Query.orderDesc('$createdAt'),
+                Query.limit(ITEMS_PER_PAGE),
+                Query.select(['$createdAt', 'videoId', '$id']) // Fetch $id for cursor
+            ];
+
+            if (isLoadMore && lastId) {
+                queries.push(Query.cursorAfter(lastId));
+            }
+
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
-                [
-                    Query.equal('userId', user.$id),
-                    Query.orderDesc('$createdAt'),
-                    Query.limit(100), 
-                    Query.select(['$createdAt', 'videoId'])
-                ]
+                queries
             );
 
-            const videoDetails = await fetchVideoDetails(response.documents);
-            
-            const grouped = groupVideosByDate(videoDetails);
-            setGroupedVideos(grouped);
+            const newItems = await fetchVideoDetails(response.documents);
+
+            if (isLoadMore) {
+                setFullHistoryList(prev => [...prev, ...newItems]);
+            } else {
+                setFullHistoryList(newItems);
+            }
+
+            setHasMore(response.documents.length === ITEMS_PER_PAGE);
+            if (response.documents.length > 0) {
+                setLastId(response.documents[response.documents.length - 1].$id);
+            }
 
         } catch (e) {
             console.error('Failed to fetch history:', e);
             setError('Failed to load your watch history.');
         }
         setLoading(false);
+        setLoadingMore(false);
     };
 
-
+    // Initial fetch
     useEffect(() => {
-        fetchHistory();
+        fetchHistory(false);
     }, [user]);
 
-    // --- (Loading/Error checks - No change) ---
+    // Infinite scroll trigger
+    useEffect(() => {
+        if (inView && hasMore && !loading && !loadingMore) {
+            fetchHistory(true);
+        }
+    }, [inView, hasMore, loading, loadingMore]);
+
     if (loading) {
         return (
             <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
@@ -172,7 +188,8 @@ const HistoryPage = () => {
             </div>
         );
     }
-    if (error) {
+
+    if (error && fullHistoryList.length === 0) {
         return (
             <div className="flex w-full h-full min-h-[70vh] items-center justify-center p-10 bg-white dark:bg-gray-900">
                 <p className="text-xl text-red-600">{error}</p>
@@ -180,7 +197,6 @@ const HistoryPage = () => {
         );
     }
 
-    // --- (NEW RENDER LOGIC) ---
     return (
         <div className="w-full bg-white text-neutral-900 p-4 sm:p-6 lg:p-8 dark:bg-gray-900 dark:text-gray-100">
             <div className="max-w-screen-xl mx-auto">
@@ -188,21 +204,16 @@ const HistoryPage = () => {
                     Watch History
                 </h1>
 
-                {Object.keys(groupedVideos).length === 0 ? (
-                    // Empty state (no change)
+                {Object.keys(groupedVideos).length === 0 && !loading ? (
                     <div className="text-center py-20">
                         <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
                             Your watch history is empty.
                         </p>
-                        <Link
-                            to="/"
-                            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors"
-                        >
+                        <Link to="/home" className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                             Start Watching
                         </Link>
                     </div>
                 ) : (
-                    // Map over the date groups
                     <div className="flex flex-col gap-8">
                         {Object.entries(groupedVideos).map(([date, data]) => (
                             <section key={date}>
@@ -210,54 +221,51 @@ const HistoryPage = () => {
                                     {date}
                                 </h2>
 
-                                {/* --- (FIX) Shorts Section (9:16) - Horizontal Scroll --- */}
+                                {/* Shorts Horizontal Scroll */}
                                 {data.shorts.length > 0 && (
                                     <div className="mb-6">
-                                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                                            Shorts
-                                        </h3>
-                                        {/* This container creates the horizontal scrollbar.
-                                          - `flex` and `gap-4`: Lays out children in a row.
-                                          - `overflow-x-auto`: Adds horizontal scroll if needed.
-                                          - `py-2`: Adds a little padding for the scrollbar.
-                                        */}
+                                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Shorts</h3>
                                         <div className="flex gap-4 overflow-x-auto py-2">
-                                            {data.shorts.map(video => (
-                                                /*
-                                                  This wrapper controls the size of the card.
-                                                  - `flex-shrink-0`: Stops the card from shrinking.
-                                                  - `w-36`: Sets a fixed width (approx 9:16)
-                                                */
-                                                <div 
-                                                    key={`${video.$id}-${video.$createdAt}`}
-                                                    className="w-36 flex-shrink-0"
-                                                >
-                                                    <HistoryShortsCard 
-                                                        video={video} 
-                                                    />
+                                            {data.shorts.map((video, index) => (
+                                                <div key={`${video.$id}-${index}`} className="w-36 flex-shrink-0">
+                                                    <HistoryShortsCard video={video} />
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
-                                {/* --- (END FIX) --- */}
 
-                                {/* --- Videos Section (16:9) - No change --- */}
+                                {/* Standard Video Grid */}
                                 {data.videos.length > 0 && (
-                                    <div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                                            {data.videos.map(video => (
-                                                <VideoCard 
-                                                    key={`${video.$id}-${video.$createdAt}`} 
-                                                    video={video} 
-                                                />
-                                            ))}
-                                        </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                                        {data.videos.map((video, index) => (
+                                            <VideoCard key={`${video.$id}-${index}`} video={video} />
+                                        ))}
                                     </div>
                                 )}
                             </section>
                         ))}
                     </div>
+                )}
+
+                {/* --- INFINITE SCROLL TRIGGER AREA --- */}
+                {hasMore && (
+                    <div ref={ref} className="flex justify-center mt-10 py-4">
+                        {loadingMore ? (
+                             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                <span>Loading older history...</span>
+                            </div>
+                        ) : (
+                            <div className="h-10 w-full" />
+                        )}
+                    </div>
+                )}
+
+                {!hasMore && fullHistoryList.length > 0 && (
+                    <p className="text-center text-gray-500 dark:text-gray-400 mt-10 pb-10">
+                        End of watch history.
+                    </p>
                 )}
             </div>
         </div>

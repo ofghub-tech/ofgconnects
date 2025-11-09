@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const googleLogin = async (
-        redirectTo = 'http://localhost:3000/home' // <-- Default redirect
+        redirectTo = '/home'
     ) => {
         try {
             // --- THIS IS THE FIX (BUG 3) ---
