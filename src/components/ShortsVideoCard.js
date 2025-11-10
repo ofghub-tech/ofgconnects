@@ -14,7 +14,7 @@ import ShareButton from './ShareButton';
 import FollowButton from './FollowButton';
 import Comments from './Comments';
 
-// --- (logVideoView function - No changes) ---
+// --- (LOGIC UNCHANGED) ---
 const logVideoView = async (userId, videoId, currentViewCount) => {
     if (!userId) return null;
     try {
@@ -59,7 +59,7 @@ const logVideoView = async (userId, videoId, currentViewCount) => {
     }
 };
 
-// --- (Icons - No changes) ---
+// --- (ICONS UNCHANGED) ---
 const CommentIcon = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-3.86 8.25-8.625 8.25a9.76 9.76 0 01-2.53-.388 1.875 1.875 0 01-1.002-1.002A9.753 9.753 0 013 12c0-4.556 3.86-8.25 8.625-8.25a9.753 9.753 0 012.53.388 1.875 1.875 0 011.002 1.002A9.76 9.76 0 0121 12z" />
@@ -85,10 +85,11 @@ const VolumeOffIcon = (props) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.125 7.5l-4.25-4.25a1.5 1.5 0 00-2.121 0L8.75 7.5H4.5A1.5 1.5 0 003 9v6a1.5 1.5 0 001.5 1.5h4.25l4.25 4.25a1.5 1.5 0 002.121 0l4.25-4.25V7.5zM15 15l3-3m-3 0l-3-3m6 0l-3 3M19.5 7.5l-6 6m6 0l-6-6"/>
     </svg>
 );
-// --- (End Icons) ---
+// --- (END ICONS) ---
 
 
 const ShortsVideoCard = ({ video, isActive, onClose }) => {
+    // --- (LOGIC UNCHANGED) ---
     const { user } = useAuth();
     const videoRef = useRef(null);
     const [isCommentPanelOpen, setIsCommentPanelOpen] = useState(false);
@@ -133,7 +134,6 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
         }
     };
 
-    // --- (Playback/Pause Logic - UPDATED) ---
     useEffect(() => {
         if (!videoRef.current) {
             return;
@@ -147,7 +147,6 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
                     if (error.name === 'NotAllowedError') {
-                        // This handles browser autoplay policy
                         console.warn('Autoplay with sound failed. Trying muted.');
                         videoElement.muted = true; 
                         setIsMuted(true); 
@@ -156,11 +155,6 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                         videoElement.play().catch(err => console.error('Muted autoplay failed.', err));
                     
                     } else if (error.name !== 'AbortError') { 
-                        // --- THIS IS THE FIX ---
-                        // We intentionally ignore 'AbortError'.
-                        // This error happens when the user scrolls away
-                        // before the video play() promise can finish.
-                        // It's not a bug, so we don't log it.
                         console.error('Video play failed (unrelated to AbortError):', error);
                     }
                 });
@@ -174,7 +168,6 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
         };
     }, [isActive, currentVideo]); 
 
-    // --- (View Logging Logic - No change) ---
     useEffect(() => {
         if (isActive && user && currentVideo) {
             const logView = async () => {
@@ -194,14 +187,17 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
             logView();
         }
     }, [isActive, user, currentVideo?.$id]); 
+    // --- (END LOGIC) ---
     
     if (!currentVideo) {
-        return <div className="h-full w-full flex-shrink-0 bg-white dark:bg-black"></div>; 
+        // --- (FIX) Removed solid background ---
+        return <div className="h-full w-full flex-shrink-0"></div>; 
     }
 
     return (
+        // --- (FIX) Removed solid bg-white dark:bg-black ---
         <div 
-            className="h-full w-full relative flex justify-center items-center flex-shrink-0 bg-white dark:bg-black"
+            className="h-full w-full relative flex justify-center items-center flex-shrink-0"
             onClick={handleVideoClick} 
         >
             
@@ -212,7 +208,8 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                     playsInline
                     muted={isMuted}
                     src={currentVideo.videoUrl} 
-                    className="w-full h-full object-contain bg-white dark:bg-black"
+                    // --- (FIX) Removed solid background, added rounded corners ---
+                    className="w-full h-full object-contain rounded-xl"
                 >
                     Your browser does not support the video tag.
                 </video>
@@ -223,7 +220,6 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                     </div>
                 )}
 
-                {/* "Tap to Unmute" Overlay (No change) */}
                 {wasForceMuted && (
                     <div 
                         className="absolute inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/40"
@@ -232,7 +228,8 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                             handleMuteToggle(e); 
                         }}
                     >
-                        <div className="flex flex-col items-center gap-2 rounded-full bg-black/50 p-4 text-white">
+                        {/* --- (FIX) Made this button a glass panel --- */}
+                        <div className="glass-panel flex flex-col items-center gap-2 rounded-full p-4 text-white">
                             <VolumeOffIcon className="h-10 w-10" />
                             <span className="font-semibold">Tap to unmute</span>
                         </div>
@@ -249,23 +246,23 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                 `}
                 style={{ pointerEvents: isActive ? 'auto' : 'none' }}
             >
-                {/* Close Button (No change) */}
+                {/* --- (FIX) Made Close Button a glass panel --- */}
                 <button
                     onClick={(e) => { 
                         e.stopPropagation();
                         onClose();
                     }} 
-                    className="absolute top-4 left-4 z-50 rounded-full bg-black/50 p-3 text-white backdrop-blur-sm transition-all hover:bg-black/70 shadow-lg"
+                    className="glass-panel absolute top-4 left-4 z-50 rounded-full p-3 text-white shadow-lg transition-all hover:scale-110"
                     title="Close"
                     style={{ pointerEvents: 'auto' }}
                 >
                     <CloseIcon className="h-6 w-6" />
                 </button>
 
-                {/* --- MUTE BUTTON (DESIGN ENHANCED) --- */}
+                {/* --- (FIX) Made Mute Button a glass panel --- */}
                 <button
                     onClick={handleMuteToggle}
-                    className="absolute top-4 right-4 z-50 rounded-full bg-black/50 p-3 text-white shadow-lg backdrop-blur-sm transition-all hover:bg-black/70"
+                    className="glass-panel absolute top-4 right-4 z-50 rounded-full p-3 text-white shadow-lg transition-all hover:scale-110"
                     title={isMuted ? 'Unmute' : 'Mute'}
                     style={{ pointerEvents: 'auto' }}
                 >
@@ -275,9 +272,9 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                     }
                 </button>
 
-                {/* Video Info (No change) */}
+                {/* --- (FIX) Made Video Info a glass panel --- */}
                 <div 
-                    className="absolute bottom-0 left-0 w-full max-w-md p-4 sm:p-6 text-gray-900 dark:text-white text-shadow-lg"
+                    className="glass-panel absolute bottom-4 left-4 max-w-[calc(100%-100px)] p-4 rounded-xl text-gray-900 dark:text-white"
                     onClick={(e) => e.stopPropagation()} 
                 >
                     <h2 className="text-xl font-bold">{currentVideo.title}</h2>
@@ -293,25 +290,29 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                     </div>
                 </div>
 
-                {/* Action Buttons (No change) */}
+                {/* --- (FIX) Made Action Buttons glass panels --- */}
                 <div 
                     className="absolute right-2 top-1/2 z-50 flex -translate-y-1/2 flex-col gap-4 sm:right-4"
                     style={{ pointerEvents: 'auto' }}
                     onClick={(e) => e.stopPropagation()} 
                 >
+                    {/* LikeButton is already styled this way, perfect */}
                     <LikeButton videoId={currentVideo.$id} initialLikeCount={currentVideo.likeCount || 0} />
+                    
                     <button 
-                        className="flex items-center justify-center gap-2 py-2 px-4 h-9 rounded-full font-medium text-sm text-neutral-800 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+                        className="glass-panel flex items-center justify-center gap-2 py-2 px-4 h-9 rounded-full font-medium text-sm text-gray-900 dark:text-gray-100 transition-all hover:scale-110"
                         onClick={() => setIsCommentPanelOpen(true)}
                     >
                         <CommentIcon className="h-5 w-5" />
                         Comment
                     </button>
+                    
+                    {/* ShareButton is already styled this way, perfect */}
                     <ShareButton videoId={currentVideo.$id} videoTitle={currentVideo.title} />
                 </div>
             </div>
 
-            {/* Comment Panel (No change) */}
+            {/* --- (FIX) Made Comment Panel a glass panel --- */}
             {isCommentPanelOpen && (
                 <>
                     <div 
@@ -322,22 +323,25 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
                         }}
                     ></div>
                     <div 
-                        className="fixed top-0 right-0 z-[51] h-full w-full max-w-md transform-gpu bg-white shadow-lg transition-transform dark:bg-gray-900"
+                        className="glass-panel fixed top-0 right-0 z-[51] h-full w-full max-w-md transform-gpu p-0 transition-transform rounded-l-xl rounded-r-none border-r-0"
                         onClick={(e) => e.stopPropagation()} 
                     >
                         <div className="flex h-full flex-col">
-                            <div className="flex items-center justify-between border-b p-4 dark:border-gray-700">
+                            {/* --- (FIX) Made header transparent, border lighter --- */}
+                            <div className="flex items-center justify-between border-b p-4 border-white/20">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     Comments
                                 </h3>
                                 <button 
                                     onClick={() => setIsCommentPanelOpen(false)} 
-                                    className="rounded-full p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                                    // --- (FIX) Transparent hover ---
+                                    className="rounded-full p-2 text-gray-600 hover:bg-gray-100/50 dark:text-gray-400 dark:hover:bg-gray-800/50"
                                 >
                                     <CloseIcon className="h-6 w-6" />
                                 </button>
                             </div>
                             <div className="flex-1 overflow-y-auto">
+                                {/* The Comments component will inherit the transparent background */}
                                 <Comments videoId={currentVideo.$id} />
                             </div>
                         </div>

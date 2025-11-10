@@ -55,15 +55,16 @@ const VideoCard = ({ video }) => {
 
     const thumbnailUrl = video.thumbnailUrl || 'https://via.placeholder.com/400x225.png?text=No+Thumbnail';
     
-    // --- (FIX 1) ---
-    // Changed to use video.username
     const channelInitial = getChannelInitial(video.username, user?.email);
 
     return (
-        <div className="flex flex-col overflow-hidden rounded-lg bg-white shadow-sm transition-transform duration-200 ease-in-out hover:shadow-md hover:-translate-y-1 dark:bg-gray-800">
+        // --- MODIFIED: Applied .glass-panel ---
+        // We add .glass-panel and p-0 (so the panel's internal padding doesn't break our layout)
+        <div className="glass-panel flex flex-col overflow-hidden p-0 transition-transform duration-200 ease-in-out hover:-translate-y-1">
             <Link to={`/watch/${video.$id}`}>
                 <img 
-                    className="aspect-video w-full object-cover" 
+                    // --- MODIFIED: Rounded top corners to match the panel ---
+                    className="aspect-video w-full object-cover rounded-t-xl" 
                     src={thumbnailUrl} 
                     alt={video.title} 
                 />
@@ -72,7 +73,6 @@ const VideoCard = ({ video }) => {
             <div className="flex gap-3 p-4">
                 {/* Channel Avatar */}
                 <div className="mt-1 flex-shrink-0">
-                    {/* Using uploaderId from your screenshot for the link */}
                     <Link to={`/channel/${video.uploaderId}`}> 
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white">
                             {channelInitial}
@@ -86,16 +86,11 @@ const VideoCard = ({ video }) => {
                             {video.title || 'Untitled Video'}
                         </h3>
                     </Link>
-                    {/* --- (FIX 2) --- */}
-                    {/* Changed to use video.username */}
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                         {video.username || 'Unknown Channel'}
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        {/* --- THIS IS THE FIX --- */}
-                        {/* Changed video.views to video.view_count */}
                         <span>{formatViews(video.view_count || 0)}</span>
-                        {/* --- END FIX --- */}
                         <span>•</span>
                         <span>{timeSince(video.$createdAt)}</span>
                     </div>

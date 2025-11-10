@@ -9,13 +9,13 @@ import {
 } from '../appwriteConfig';
 import { ID, Permission, Role } from 'appwrite';
 
-// --- Constants for Validation ---
+// --- Constants (Unchanged) ---
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
 const MAX_THUMB_SIZE = 5 * 1024 * 1024;   // 5MB
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'];
 const ALLOWED_THUMB_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
-// --- (Spinner - No change needed) ---
+// --- Spinner (Unchanged) ---
 const Spinner = () => (
     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -23,10 +23,10 @@ const Spinner = () => (
     </svg>
 );
 
-// --- Alert Component ---
+// --- Alert Component (MODIFIED: Semi-transparent) ---
 const Alert = ({ type, message }) => {
     const isError = type === 'error';
-    const bgColor = isError ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900';
+    const bgColor = isError ? 'bg-red-100/80 dark:bg-red-900/80' : 'bg-green-100/80 dark:bg-green-900/80';
     const borderColor = isError ? 'border-red-400 dark:border-red-700' : 'border-green-400 dark:border-green-700';
     const textColor = isError ? 'text-red-700 dark:text-red-200' : 'text-green-700 dark:text-green-200';
     const iconColor = isError ? 'text-red-400 dark:text-red-300' : 'text-green-400 dark:text-green-300';
@@ -49,7 +49,7 @@ const Alert = ({ type, message }) => {
     );
 };
 
-// --- Reusable Form Components ---
+// --- FormInput (MODIFIED: Semi-transparent) ---
 const FormInput = ({ id, label, type = "text", value, onChange, required = false, ...props }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
@@ -61,12 +61,13 @@ const FormInput = ({ id, label, type = "text", value, onChange, required = false
             value={value}
             onChange={onChange}
             required={required}
-            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300/50 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 dark:bg-gray-700/50 dark:border-gray-600/50 dark:text-gray-100 dark:placeholder-gray-400"
             {...props}
         />
     </div>
 );
 
+// --- FormTextarea (MODIFIED: Semi-transparent) ---
 const FormTextarea = ({ id, label, value, onChange }) => (
     <div className="mb-4">
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
@@ -77,11 +78,12 @@ const FormTextarea = ({ id, label, value, onChange }) => (
             value={value}
             onChange={onChange}
             rows="4"
-            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+            className="w-full px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300/50 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 dark:bg-gray-700/50 dark:border-gray-600/50 dark:text-gray-100 dark:placeholder-gray-400"
         />
     </div>
 );
 
+// --- FormFileInput (MODIFIED: Semi-transparent) ---
 const FormFileInput = ({ id, label, onChange, required = false, accept, file, clearFile }) => {
     return (
         <div className="mb-4">
@@ -89,7 +91,7 @@ const FormFileInput = ({ id, label, onChange, required = false, accept, file, cl
                 {label} {required && <span className="text-red-500">*</span>} {!required && <span className="text-gray-500 text-xs dark:text-gray-400">(Optional)</span>}
             </label>
             {file ? (
-                <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                <div className="flex items-center justify-between w-full px-3 py-2 border border-gray-300/50 rounded-md bg-gray-50/50 dark:bg-gray-700/50 dark:border-gray-600/50">
                     <span className="text-sm text-gray-700 truncate dark:text-gray-300">{file.name}</span>
                     <button
                         type="button"
@@ -110,16 +112,17 @@ const FormFileInput = ({ id, label, onChange, required = false, accept, file, cl
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100
-                                dark:file:bg-blue-900 dark:file:text-blue-300
-                                dark:hover:file:bg-blue-800"
+                                file:bg-blue-50/80 file:text-blue-700
+                                hover:file:bg-blue-100/80
+                                dark:file:bg-blue-900/80 dark:file:text-blue-300
+                                dark:hover:file:bg-blue-800/80"
                 />
             )}
         </div>
     );
 };
 
+// --- FormSelect (MODIFIED: Semi-transparent) ---
 const FormSelect = ({ id, label, value, onChange, required = false, children }) => (
     <div className="mb-6">
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
@@ -130,7 +133,7 @@ const FormSelect = ({ id, label, value, onChange, required = false, children }) 
             value={value}
             onChange={onChange}
             required={required}
-            className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full px-3 py-2 text-gray-900 border border-gray-300/50 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 dark:bg-gray-700/50 dark:border-gray-600/50 dark:text-gray-100"
         >
             {children}
         </select>
@@ -138,8 +141,8 @@ const FormSelect = ({ id, label, value, onChange, required = false, children }) 
 );
 
 const UploadForm = ({ onUploadSuccess }) => {
+    // --- Logic (Unchanged) ---
     const { user } = useAuth();
-
     const [step, setStep] = useState(1);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -147,17 +150,13 @@ const UploadForm = ({ onUploadSuccess }) => {
     const [tags, setTags] = useState('');
     const [thumbnailFile, setThumbnailFile] = useState(null);
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
-
     const [videoFile, setVideoFile] = useState(null);
     const [isUploadingVideo, setIsUploadingVideo] = useState(false);
-    // --- PROGRESS STATE ---
     const [uploadProgress, setUploadProgress] = useState(0);
-
     const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
     const [videoUploadResponse, setVideoUploadResponse] = useState(null);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
-
     const isSubmitted = useRef(false);
     const uploadedFileIds = useRef({ video: null, thumbnail: null });
 
@@ -193,11 +192,9 @@ const UploadForm = ({ onUploadSuccess }) => {
 
     const clearThumbnailFile = () => setThumbnailFile(null);
 
-    // --- STEP 1: Video Selection & Upload with Progress ---
     const handleVideoFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file || !user) return;
-
         if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
             setError('Invalid video format. Please use MP4, WebM, or MOV.');
             e.target.value = "";
@@ -208,18 +205,15 @@ const UploadForm = ({ onUploadSuccess }) => {
             e.target.value = "";
             return;
         }
-
         setVideoFile(file);
         setStep(2);
         setIsUploadingVideo(true);
         setUploadProgress(0);
         setError(null);
         setSuccess(null);
-
         try {
             const newVideoId = ID.unique();
             uploadedFileIds.current.video = newVideoId;
-
             const videoUpload = await storage.createFile(
                 BUCKET_ID_VIDEOS,
                 newVideoId,
@@ -230,7 +224,6 @@ const UploadForm = ({ onUploadSuccess }) => {
                     setUploadProgress(percent);
                 }
             );
-
             const videoUrlString = storage.getFileView(videoUpload.bucketId, videoUpload.$id);
             setVideoUploadResponse({ fileId: newVideoId, urlString: videoUrlString });
             setIsUploadingVideo(false);
@@ -260,7 +253,6 @@ const UploadForm = ({ onUploadSuccess }) => {
         setThumbnailFile(file);
     };
 
-    // --- STEP 2: Final Submission (FIXED tagsString ERROR HERE) ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!videoUploadResponse || isUploadingVideo) {
@@ -271,26 +263,19 @@ const UploadForm = ({ onUploadSuccess }) => {
             setError('Please fill out all required fields.');
             return;
         }
-
         setIsSubmittingDetails(true);
         setError(null);
-
         let thumbnailUrlString = null;
         let newThumbnailId = null;
-
         try {
             const { fileId: videoFileId, urlString: videoUrlString } = videoUploadResponse;
-
             if (thumbnailFile) {
                 newThumbnailId = ID.unique();
                 uploadedFileIds.current.thumbnail = newThumbnailId;
                 await storage.createFile(BUCKET_ID_VIDEOS, newThumbnailId, thumbnailFile, [Permission.read(Role.any())]);
                 thumbnailUrlString = storage.getFileView(BUCKET_ID_VIDEOS, newThumbnailId);
             }
-
-            // --- FIX IS HERE: Define tagsString before using it ---
             const tagsString = tags.trim();
-
             await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
@@ -300,16 +285,14 @@ const UploadForm = ({ onUploadSuccess }) => {
                     thumbnailUrl: thumbnailUrlString,
                     title, description, userId: user.$id, username: user.name,
                     category, 
-                    tags: tagsString, // <--- Now it uses the defined variable
+                    tags: tagsString,
                     likeCount: 0, commentCount: 0,
                 }
             );
-
             isSubmitted.current = true;
             setSuccess('Upload successful! Your video is now live.');
             if (onUploadSuccess) onUploadSuccess();
             resetForm();
-
         } catch (err) {
             console.error('Database submission failed:', err);
             setError(`Submission failed: ${err.message}`);
@@ -319,9 +302,11 @@ const UploadForm = ({ onUploadSuccess }) => {
 
     const isSubmitDisabled = isUploadingVideo || isSubmittingDetails || !videoUploadResponse || !title || !tags || !category;
     let buttonText = isUploadingVideo ? `Uploading Video (${uploadProgress}%)...` : (isSubmittingDetails ? 'Publishing...' : 'Publish Video');
+    // --- End Logic ---
 
     return (
-        <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-xl my-10 dark:bg-gray-800">
+        // --- MODIFIED: Removed all wrapper styles, as modal provides them ---
+        <div>
             {step === 1 && (
                 <>
                     <h2 className="text-2xl font-bold text-gray-900 mb-6 dark:text-gray-100">Upload Your Video</h2>
@@ -341,14 +326,14 @@ const UploadForm = ({ onUploadSuccess }) => {
                         {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
                         {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
 
-                        {/* --- Video File Status with Progress Bar --- */}
-                        <div className="mb-4 p-3 bg-gray-50 rounded-md border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                        {/* --- MODIFIED: Semi-transparent status box --- */}
+                        <div className="mb-4 p-3 bg-gray-50/50 rounded-md border border-gray-200/50 dark:bg-gray-700/50 dark:border-gray-600/50">
                             <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                 Video Status: {videoFile?.name}
                             </label>
                             
                             {isUploadingVideo ? (
-                                <div className="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-600 overflow-hidden">
+                                <div className="w-full bg-gray-200/50 rounded-full h-4 dark:bg-gray-600/50 overflow-hidden">
                                     <div 
                                         className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out" 
                                         style={{ width: `${uploadProgress}%` }}
@@ -385,19 +370,20 @@ const UploadForm = ({ onUploadSuccess }) => {
                             {thumbnailPreview ? (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Preview</label>
-                                    <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-auto rounded-md border border-gray-300 dark:border-gray-600" />
+                                    <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-auto rounded-md border border-gray-300/50 dark:border-gray-600/50" />
                                 </div>
                             ) : (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Preview</label>
-                                    <div className="flex items-center justify-center w-full h-[125px] border-2 border-gray-300 border-dashed rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                                    {/* --- MODIFIED: Semi-transparent --- */}
+                                    <div className="flex items-center justify-center w-full h-[125px] border-2 border-gray-300/50 border-dashed rounded-md bg-gray-50/50 dark:bg-gray-700/50 dark:border-gray-600/50">
                                         <span className="text-gray-400 dark:text-gray-500">No thumbnail</span>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <FormSelect id="category" label="Category" value={category} onChange={(e) => setCategory(e.target.value)} required={true}>
+                        <FormSelect id="category" label="Category" value={category} onChange={(e) => setCategory(e.targe.value)} required={true}>
                             <option value="">Select a Category</option>
                             <option value="general">General Video</option>
                             <option value="shorts">Short Video</option>

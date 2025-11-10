@@ -12,6 +12,7 @@ import { Query, ID, Permission, Role } from 'appwrite'; // <-- UPDATED IMPORTS
 import ShortsVideoCard from '../components/ShortsVideoCard';
 
 const ShortsWatchPage = () => {
+    // --- (LOGIC UNCHANGED) ---
     const { videoId } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth(); // <-- ADDED
@@ -23,27 +24,23 @@ const ShortsWatchPage = () => {
     const [isScrolling, setIsScrolling] = useState(false);
     const scrollTimeoutRef = useRef(null);
 
-    // --- NEW: STRICT UNIQUE VIEW LOGIC ---
     const logVideoView = async (userId, videoId, currentViewCount) => {
         if (!userId || !videoId) return null;
         try {
-            // 1. Check if ANY history exists for this user+video
             const historyCheck = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
                 [Query.equal('userId', userId), Query.equal('videoId', videoId), Query.limit(1)]
             );
 
-            if (historyCheck.total > 0) return null; // Already watched, don't count again
+            if (historyCheck.total > 0) return null; // Already watched
 
-            // 2. Log history
             await databases.createDocument(
                 DATABASE_ID, COLLECTION_ID_HISTORY, ID.unique(),
                 { userId: userId, videoId: videoId },
                 [Permission.read(Role.user(userId)), Permission.write(Role.user(userId))]
             );
 
-            // 3. Increment view count
             const newViewCount = (currentViewCount || 0) + 1;
             await databases.updateDocument(
                 DATABASE_ID, COLLECTION_ID_VIDEOS, videoId,
@@ -56,7 +53,6 @@ const ShortsWatchPage = () => {
         }
     };
 
-    // --- INITIAL FETCH ---
     useEffect(() => {
         const fetchVideos = async () => {
             setLoading(true);
@@ -77,7 +73,6 @@ const ShortsWatchPage = () => {
         fetchVideos();
     }, [videoId, navigate]);
 
-    // --- NEW: LOG VIEW WHEN ACTIVE VIDEO CHANGES ---
     useEffect(() => {
         const handleViewLog = async () => {
             if (videos.length > 0 && user && videos[currentIndex]) {
@@ -85,7 +80,6 @@ const ShortsWatchPage = () => {
                 const newCount = await logVideoView(user.$id, currentVideo.$id, currentVideo.view_count);
                 
                 if (newCount) {
-                    // Update the view count in our local state
                     setVideos(prevVideos => {
                         const newVideos = [...prevVideos];
                         newVideos[currentIndex] = { ...newVideos[currentIndex], view_count: newCount };
@@ -95,7 +89,7 @@ const ShortsWatchPage = () => {
             }
         };
         handleViewLog();
-    }, [currentIndex, user, videos.length]); // Removed 'videos' from dependency to avoid loops, used length instead
+    }, [currentIndex, user, videos.length]);
 
     const handleUserInteraction = () => { if (!hasUserInteracted) setHasUserInteracted(true); };
 
@@ -112,7 +106,7 @@ const ShortsWatchPage = () => {
         } else if (scrollDelta < -5) {
             if (currentIndex > 0) {
                 setIsScrolling(true);
-                setCurrentIndex(prev => prev - 1);
+                setCurrentIndex(prev => prev + 1);
             }
         }
         if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
@@ -126,11 +120,14 @@ const ShortsWatchPage = () => {
         if (relativeIndex === 1) return { transform: 'translateX(0) scale(0.9)', opacity: 0.7, zIndex: 9 };
         return { transform: `translateX(0) scale(${0.9 - (relativeIndex * 0.1)})`, opacity: 0.4, zIndex: 8 - relativeIndex };
     };
+    // --- (END LOGIC) ---
 
-    if (loading) return <div className="flex items-center justify-center h-full w-full bg-black"><p className="text-xl text-neutral-400">Loading Shorts...</p></div>;
+    // --- (FIX) Removed bg-black from loading screen ---
+    if (loading) return <div className="flex items-center justify-center h-full w-full"><p className="text-xl text-neutral-400">Loading Shorts...</p></div>;
 
     return (
-        <div className="h-full w-full bg-black text-white relative flex justify-center items-center overflow-hidden" onWheel={handleWheel}>
+        // --- (FIX) Removed bg-black from main wrapper ---
+        <div className="h-full w-full text-white relative flex justify-center items-center overflow-hidden" onWheel={handleWheel}>
             <div className="h-full w-full relative">
                 {videos.map((video, index) => {
                     if (!video || !video.$id) return null;

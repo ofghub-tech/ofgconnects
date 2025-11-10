@@ -7,6 +7,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import VideoCard from './VideoCard';
 
+// --- (LOGIC UNCHANGED) ---
 const VIDEOS_PER_PAGE = 12;
 
 const fetchVideos = async ({ pageParam = 0, queryKey }) => {
@@ -74,32 +75,41 @@ const Feed = ({ searchTerm, category }) => {
             fetchNextPage();
         }
     }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
+    // --- (END LOGIC) ---
 
     if (status === 'loading') {
         return (
+             // --- (FIX) Removed solid background ---
              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
+                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+             </div>
         );
     }
 
     if (status === 'error') {
-        return <p className="p-6 text-center text-red-500">Error: {error.message}</p>;
+        // --- (FIX) Made this a glass panel ---
+        return (
+            <div className="glass-panel p-6 text-center text-red-500">
+                Error: {error.message}
+            </div>
+        );
     }
 
     const allVideos = data ? data.pages.flat() : [];
 
     return (
         <>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-8 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {allVideos.length === 0 && !isFetching && (
-                    <p className="col-span-full py-8 text-center text-lg text-gray-600 dark:text-gray-400">
+                    // --- (FIX) Made this a glass panel ---
+                    <div className="glass-panel col-span-full py-8 text-center text-lg text-gray-600 dark:text-gray-200">
                         {searchTerm ? `No results for "${searchTerm}"` : "No videos yet."}
-                    </p>
+                    </div>
                 )}
 
                 {data && data.pages.map((page, i) => (
                     <React.Fragment key={i}>
+                        {/* VideoCard is already a glass panel */}
                         {page.map(video => <VideoCard key={video.$id} video={video} />)}
                     </React.Fragment>
                 ))}
@@ -109,11 +119,10 @@ const Feed = ({ searchTerm, category }) => {
             <div ref={ref} className="col-span-full py-6 text-center flex justify-center">
                 {isFetchingNextPage ? (
                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                        <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                        <span>Loading more...</span>
-                    </div>
+                         <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                         <span>Loading more...</span>
+                     </div>
                 ) : hasNextPage ? (
-                    // Invisible trigger area when not loading but has more
                     <div className="h-10 w-full" />
                 ) : allVideos.length > 0 ? (
                     <p className="text-gray-500 dark:text-gray-400">You've reached the end.</p>

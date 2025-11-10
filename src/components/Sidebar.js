@@ -2,7 +2,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
-// --- Icon Components ---
+// --- (Icons) ---
 const IconWrapper = (props) => (
     <svg {...props} className={`h-6 w-6 shrink-0 ${props.className || ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         {props.children}
@@ -30,14 +30,13 @@ const SidebarLink = ({ to, icon, label, isSidebarOpen }) => {
     
     const getNavLinkClass = ({ isActive }) => {
         let baseClasses = "flex items-center rounded-lg mx-3 px-3 py-3 transition-colors duration-200";
-        let openClasses = "gap-6"; // Gap when open
-        let closedClasses = "justify-center"; // Centered when closed
+        let openClasses = "gap-6";
+        let closedClasses = "justify-center";
 
         // --- MODIFIED FOR GLASS UI ---
-        // Active class is a bit stronger, less transparent
         let activeClass = isActive 
-            ? "bg-gray-200 font-medium text-gray-900 dark:bg-gray-700 dark:text-white" 
-            : "text-gray-700 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50"; // Use semi-transparent hover
+            ? "bg-gray-200/70 font-medium text-gray-900 dark:bg-gray-700/70 dark:text-white" 
+            : "text-gray-700 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50";
 
         return `${baseClasses} ${isSidebarOpen ? openClasses : closedClasses} ${activeClass}`;
     };
@@ -66,25 +65,20 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
 
     return (
         // --- (MODIFIED FOR GLASS UI) ---
-        // We change bg-white to bg-white/80, add backdrop-blur-md, and make the border semi-transparent
-        <aside className={`h-full flex-shrink-0 overflow-y-auto overflow-x-hidden border-r border-gray-200/50 bg-white/80 transition-all duration-300 backdrop-blur-md dark:border-gray-800/50 dark:bg-gray-900/80 ${sidebarWidth}`}>
+        // Replaced all styles with .glass-panel
+        <aside className={`glass-panel h-full flex-shrink-0 overflow-y-auto overflow-x-hidden p-0 transition-all duration-300 rounded-none border-r border-l-0 border-t-0 border-b-0 ${sidebarWidth}`}>
             
-            {/* --- Header section for Menu Button (Updated) --- */}
-            {/* We make this part of the sidebar, but it's *not* sticky like the main Header */}
             <div className={`flex h-16 items-center ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
                 <button 
                     onClick={toggleSidebar} 
-                    // Make hover match the NavLink hover
                     className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50"
                 >
                     <MenuIcon className="h-6 w-6" />
                 </button>
             </div>
-            {/* --- END HEADER --- */}
 
             <nav className="flex flex-col gap-2 pt-2">
                 
-                {/* --- NEW "EXPLORE" SECTION --- */}
                 <div className="flex flex-col gap-1">
                     <SectionTitle label="Explore" isSidebarOpen={isSidebarOpen} />
                     <SidebarLink to="/home" icon={<HomeIcon />} label="Home" isSidebarOpen={isSidebarOpen} />
@@ -93,11 +87,9 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
                     <SidebarLink to="/kids" icon={<SmileIcon />} label="Kids" isSidebarOpen={isSidebarOpen} />
                 </div>
 
-                {/* --- SEPARATOR --- */}
-                {/* Make separator semi-transparent */}
-                <hr className={`my-2 mx-6 border-gray-200/50 transition-all dark:border-gray-700/50 ${!isSidebarOpen ? 'mx-3' : ''}`} />
+                {/* --- SEPARATOR (MODIFIED) --- */}
+                <hr className={`my-2 mx-6 border-white/20 transition-all dark:border-gray-700/50 ${!isSidebarOpen ? 'mx-3' : ''}`} />
 
-                {/* --- NEW "MINE" SECTION --- */}
                 <div className="flex flex-col gap-1">
                     <SectionTitle label="Mine" isSidebarOpen={isSidebarOpen} />
                     <SidebarLink to="/myspace" icon={<UserIcon />} label="My Space" isSidebarOpen={isSidebarOpen} />

@@ -9,6 +9,7 @@ import {
 import { ID, Permission, Role, Query } from 'appwrite';
 
 const FollowButton = ({ creatorId, creatorName }) => {
+    // --- (LOGIC UNCHANGED) ---
     const { user } = useAuth();
     const [isFollowing, setIsFollowing] = useState(false);
     const [subscriptionId, setSubscriptionId] = useState(null);
@@ -94,19 +95,23 @@ const FollowButton = ({ creatorId, creatorName }) => {
             alert(`Error on Unfollow: ${error.message}`);
         }
     };
+    // --- (END LOGIC) ---
 
-    // --- UPDATED Tailwind Classes (with dark mode) ---
+    // --- (FIX) Replaced solid styles with glass panel styles ---
+    // We use the same styles from our .glass-panel class, but keep rounded-full
     const followButtonClasses = `
         flex items-center justify-center
         py-2 px-4 h-9 rounded-full 
         font-medium text-sm
-        transition-colors duration-200 ease-in-out
+        transition-all duration-200 ease-in-out
         disabled:opacity-50 disabled:cursor-not-allowed
+        shadow-lg backdrop-blur-2xl border
+        hover:scale-105
         ${isFollowing 
-            // Following state (light gray)
-            ? 'bg-gray-100 text-neutral-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600' 
-            // Default state (solid black)
-            : 'bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300'
+            // Following state (Subdued, dark glass)
+            ? 'bg-gray-600/30 border-white/10 text-white' 
+            // Default state (Prominent, bright glass - for dark mode)
+            : 'bg-white/90 border-white/20 text-black'
         }
     `;
 
@@ -118,7 +123,7 @@ const FollowButton = ({ creatorId, creatorName }) => {
         <button 
             className={followButtonClasses}
             onClick={isFollowing ? handleUnfollow : handleFollow}
-            disabled={!user || isLoading} // Added isLoading to disabled state
+            disabled={!user || isLoading}
         >
             {isFollowing ? 'Following' : 'Follow'}
         </button>

@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS, COLLECTION_ID_LIKES } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import { Link } from 'react-router-dom';
-// --- 1. IMPORT OBSERVER ---
 import { useInView } from 'react-intersection-observer';
 
 // --- Icon Component ---
@@ -16,17 +15,16 @@ const HeartIcon = (props) => (
 );
 
 const LikedVideosPage = () => {
+    // --- (LOGIC UNCHANGED) ---
     const { user } = useAuth();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- 2. NEW PAGINATION STATE ---
     const [loadingMore, setLoadingMore] = useState(false);
     const [lastLikeId, setLastLikeId] = useState(null); // Cursor for LIKES collection
     const [hasMore, setHasMore] = useState(true);
-    const ITEMS_PER_PAGE = 50; // Fetch 50 likes at a time
+    const ITEMS_PER_PAGE = 50; 
 
-    // --- 3. OBSERVER HOOK ---
     const { ref, inView } = useInView({ threshold: 0.1 });
 
     const fetchLikedVideos = async (isLoadMore = false) => {
@@ -39,14 +37,12 @@ const LikedVideosPage = () => {
         }
 
         try {
-            // 1. Fetch batch of 'like' documents
             let queries = [
                 Query.equal('userId', user.$id),
                 Query.orderDesc('$createdAt'),
                 Query.limit(ITEMS_PER_PAGE)
             ];
 
-            // If loading more, use the cursor from the last LIKE document
             if (isLoadMore && lastLikeId) {
                 queries.push(Query.cursorAfter(lastLikeId));
             }
@@ -66,29 +62,22 @@ const LikedVideosPage = () => {
                 return;
             }
 
-            // Update cursor for next time
             setLastLikeId(likeDocs[likeDocs.length - 1].$id);
             setHasMore(likeDocs.length === ITEMS_PER_PAGE);
 
-            // 2. Extract video IDs from this batch
             const videoIds = likeDocs.map(doc => doc.videoId);
 
-            // 3. Fetch the actual video documents for this batch
-            // (Appwrite's 'equal' query can handle array of IDs up to 100)
             const videosResponse = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
                 [Query.equal('$id', videoIds), Query.limit(ITEMS_PER_PAGE)]
             );
 
-            // 4. Re-sort to match the 'likes' order (newest like first)
-            // because fetching by IDs might return them in a random order.
             const fetchedVideos = videosResponse.documents;
             const orderedBatch = videoIds
                 .map(id => fetchedVideos.find(v => v.$id === id))
-                .filter(Boolean); // Remove any nulls if a video was deleted
+                .filter(Boolean); 
 
-            // 5. Update state
             if (isLoadMore) {
                 setVideos(prev => [...prev, ...orderedBatch]);
             } else {
@@ -102,64 +91,74 @@ const LikedVideosPage = () => {
         setLoadingMore(false);
     };
 
-    // Initial fetch
     useEffect(() => {
         fetchLikedVideos(false);
     }, [user]);
 
-    // Infinite scroll trigger
     useEffect(() => {
         if (inView && hasMore && !loading && !loadingMore) {
             fetchLikedVideos(true);
         }
     }, [inView, hasMore, loading, loadingMore]);
+    // --- (END LOGIC) ---
 
 
-    // --- RENDER FUNCTIONS ---
+    // --- (FIX) Removed solid backgrounds and applied .glass-panel ---
     if (!user) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center dark:bg-gray-900">
-                <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">Please Log In</h1>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">You must be logged in to view your liked videos.</p>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="glass-panel flex flex-col items-center justify-center p-8 min-h-[50vh] text-center">
+                    <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">Please Log In</h1>
+                    <p className="mt-2 text-gray-600 dark:text-gray-200">You must be logged in to view your liked videos.</p>
+                </div>
             </div>
         );
     }
 
+    // --- (FIX) Removed solid backgrounds and applied .glass-panel ---
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 dark:bg-gray-900">
-                <p className="text-lg text-gray-600 dark:text-gray-400">Finding your favorite videos...</p>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="glass-panel flex items-center justify-center p-8 min-h-[50vh]">
+                    <p className="text-lg text-gray-600 dark:text-gray-200">Finding your favorite videos...</p>
+                </div>
             </div>
         );
     }
 
+    // --- (FIX) Removed solid backgrounds and applied .glass-panel ---
     if (videos.length === 0 && !loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-full min-h-[50vh] bg-gray-50 text-center dark:bg-gray-900">
-                <HeartIcon />
-                <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">Liked Videos</h1>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
-                    Videos you like will show up here. Go find your next favorite!
-                </p>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="glass-panel flex flex-col items-center justify-center p-8 min-h-[50vh] text-center">
+                    <HeartIcon />
+                    <h1 className="mt-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">Liked Videos</h1>
+                    <p className="mt-2 text-gray-600 dark:text-gray-200">
+                        Videos you like will show up here. Go find your next favorite!
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full dark:bg-gray-900">
+        // --- (FIX) Removed solid backgrounds ---
+        <div className="p-4 sm:p-6 lg:p-8 min-h-full">
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Liked Videos</h1>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {videos.map((video) => (
                         <Link to={`/watch/${video.$id}`} key={video.$id} className="group block">
-                            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 group-hover:shadow-xl dark:bg-gray-800">
+                            {/* --- (FIX) Applied .glass-panel class --- */}
+                            <div className="glass-panel p-0 overflow-hidden transition-all duration-200 group-hover:scale-[1.02]">
                                 {/* Thumbnail */}
-                                <div className="w-full aspect-video bg-gray-200 overflow-hidden dark:bg-gray-700">
+                                <div className="w-full aspect-video overflow-hidden">
                                     <img
                                         src={video.thumbnailUrl}
                                         alt={video.title}
-                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                        // --- (FIX) Rounded top corners ---
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 rounded-t-xl"
                                     />
                                 </div>
                                 {/* Details */}
@@ -174,7 +173,6 @@ const LikedVideosPage = () => {
                     ))}
                 </div>
 
-                {/* --- INFINITE SCROLL TRIGGER AREA --- */}
                 {hasMore && (
                     <div ref={ref} className="flex justify-center mt-10 py-4">
                         {loadingMore ? (

@@ -7,22 +7,20 @@ import { Query } from 'appwrite';
 import { Link } from 'react-router-dom';
 import UploadForm from '../components/UploadForm';
 import Modal from '../components/Modal';
-// --- 1. IMPORT OBSERVER ---
 import { useInView } from 'react-intersection-observer';
 
 const MySpacePage = () => {
+    // --- (LOGIC UNCHANGED) ---
     const { user } = useAuth();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
 
-    // --- 2. PAGINATION STATE ---
     const [loadingMore, setLoadingMore] = useState(false);
     const [lastId, setLastId] = useState(null);
     const [hasMore, setHasMore] = useState(true);
-    const ITEMS_PER_PAGE = 24; // Good number for grid layouts (divisible by 2, 3, 4)
+    const ITEMS_PER_PAGE = 24; 
 
-    // --- 3. OBSERVER HOOK ---
     const { ref, inView } = useInView({ threshold: 0.1 });
 
     const fetchUserVideos = async (isLoadMore = false) => {
@@ -41,7 +39,6 @@ const MySpacePage = () => {
                 Query.limit(ITEMS_PER_PAGE)
             ];
 
-            // If loading more, start AFTER the last video we have
             if (isLoadMore && lastId) {
                 queries.push(Query.cursorAfter(lastId));
             }
@@ -58,7 +55,6 @@ const MySpacePage = () => {
                 setVideos(response.documents);
             }
 
-            // Update pagination state
             setHasMore(response.documents.length === ITEMS_PER_PAGE);
             if (response.documents.length > 0) {
                 setLastId(response.documents[response.documents.length - 1].$id);
@@ -71,33 +67,29 @@ const MySpacePage = () => {
         setLoadingMore(false);
     };
 
-    // Initial fetch when user loads
     useEffect(() => {
         fetchUserVideos(false);
     }, [user]);
 
-    // Infinite scroll trigger
     useEffect(() => {
         if (inView && hasMore && !loading && !loadingMore) {
             fetchUserVideos(true);
         }
     }, [inView, hasMore, loading, loadingMore]);
 
-    // --- HANDLER FOR SUCCESSFUL UPLOAD ---
     const handleUploadComplete = () => {
         setShowUploadModal(false);
-        // Reset pagination state to start fresh from the top
         setLastId(null);
         setHasMore(true);
-        // Re-fetch the first page immediately to show the new video
         fetchUserVideos(false);
     };
+    // --- (END LOGIC) ---
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-full dark:bg-gray-900">
+        // --- (FIX 1) Removed solid bg-gray-50 dark:bg-gray-900 ---
+        <div className="p-4 sm:p-6 lg:p-8 min-h-full">
             <div className="max-w-4xl mx-auto">
                 
-                {/* --- HEADER & UPLOAD BUTTON --- */}
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Space</h1>
                     <button
@@ -108,7 +100,7 @@ const MySpacePage = () => {
                     </button>
                 </div>
 
-                {/* --- UPLOAD MODAL --- */}
+                {/* Modal is already a glass panel from our earlier change */}
                 {showUploadModal && (
                     <Modal onClose={() => setShowUploadModal(false)}>
                         <UploadForm onUploadSuccess={handleUploadComplete} />
@@ -117,35 +109,36 @@ const MySpacePage = () => {
 
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4 dark:text-gray-200">My Videos</h2>
                 
-                {/* --- LOADING STATE (INITIAL) --- */}
                 {loading ? (
                     <div className="flex justify-center p-10">
                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                     </div>
                 ) : (
                     <>
-                        {/* --- VIDEO GRID --- */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {videos.length === 0 ? (
-                                <p className="text-gray-500 col-span-full dark:text-gray-400">
+                                // --- (FIX 2) Made this a glass panel ---
+                                <div className="glass-panel text-gray-500 col-span-full dark:text-gray-400 text-center p-10">
                                     You haven't uploaded any videos yet.
-                                </p>
+                                </div>
                             ) : (
                                 videos.map((video) => (
                                     <Link to={`/watch/${video.$id}`} key={video.$id} className="video-card-link group">
-                                        <div className="bg-white rounded-lg shadow overflow-hidden transition-transform duration-300 group-hover:scale-105 dark:bg-gray-800">
-                                            <div className="w-full h-32 bg-gray-200 overflow-hidden dark:bg-gray-700">
+                                        {/* --- (FIX 3) Replaced solid card with .glass-panel --- */}
+                                        <div className="glass-panel p-0 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                                            {/* --- (FIX 4) Removed solid bg from wrapper --- */}
+                                            <div className="w-full h-32 overflow-hidden">
                                                 <img
                                                     src={video.thumbnailUrl}
                                                     alt={video.title}
-                                                    className="w-full h-full object-cover"
+                                                    // --- (FIX 5) Rounded top corners ---
+                                                    className="w-full h-full object-cover rounded-t-xl"
                                                 />
                                             </div>
                                             <div className="p-4">
                                                 <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
                                                     {video.title}
                                                 </h3>
-                                                {/* You could add views/date here if you want */}
                                             </div>
                                         </div>
                                     </Link>
@@ -153,16 +146,14 @@ const MySpacePage = () => {
                             )}
                         </div>
 
-                        {/* --- INFINITE SCROLL TRIGGER AREA --- */}
                         {hasMore && videos.length > 0 && (
                             <div ref={ref} className="flex justify-center mt-10 py-4">
                                 {loadingMore ? (
                                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                                        <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                                        <span>Loading more...</span>
-                                    </div>
+                                         <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                         <span>Loading more...</span>
+                                     </div>
                                 ) : (
-                                    // Invisible trigger element
                                     <div className="h-10 w-full" />
                                 )}
                             </div>
@@ -170,7 +161,7 @@ const MySpacePage = () => {
                         
                         {!hasMore && videos.length > 0 && (
                              <p className="text-center text-gray-500 dark:text-gray-400 mt-10 pb-10">
-                                End of your videos.
+                                 End of your videos.
                             </p>
                         )}
                     </>

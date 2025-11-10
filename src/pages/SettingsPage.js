@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-// --- Reusable UI Components ---
+// --- (FIX 1) Made input semi-transparent ---
 const SettingsInput = ({ label, id, ...props }) => (
     <div>
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -10,7 +10,7 @@ const SettingsInput = ({ label, id, ...props }) => (
         </label>
         <input
             id={id}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+            className="mt-1 block w-full rounded-md border-gray-300/50 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white/50 dark:bg-gray-700/50 dark:border-gray-600/50 dark:text-gray-200 dark:placeholder-gray-400 disabled:bg-gray-100/50 dark:disabled:bg-gray-700/50"
             {...props}
         />
     </div>
@@ -26,21 +26,22 @@ const SettingsButton = ({ children, isLoading, ...props }) => (
     </button>
 );
 
+// --- (FIX 2) Made message boxes semi-transparent ---
 const Message = ({ text, type }) => {
     const baseClasses = "text-sm font-medium p-3 rounded-md my-2";
     const typeClasses = {
-        success: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-        error: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+        success: "bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200",
+        error: "bg-red-100/80 text-red-800 dark:bg-red-900/80 dark:text-red-200"
     };
     return (
-        <div className={`${baseClasses} ${typeClasses[type] || 'bg-gray-100 text-gray-800'}`}>
+        <div className={`${baseClasses} ${typeClasses[type] || 'bg-gray-100/80 text-gray-800'}`}>
             {text}
         </div>
     );
 };
 // --- End UI Components ---
 
-// --- NEW ICONS FOR THEME ---
+// --- (ICONS UNCHANGED) ---
 const SunIcon = (props) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-6.364-.386l1.591-1.591M3 12h2.25m.386-6.364l1.591 1.591M12 12a2.25 2.25 0 00-2.25 2.25v.01c0 .317.031.63.09 1.15a3.744 3.744 0 01-1.31 3.298 3.744 3.744 0 01-4.903-1.085 3.744 3.744 0 01-1.085-4.903A3.745 3.745 0 016.6 6.6a3.745 3.745 0 013.298-1.31c.52.059 1.033.09 1.15.09v.01A2.25 2.25 0 0012 3z" />
@@ -56,13 +57,13 @@ const ComputerIcon = (props) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-1.621-.621A3 3 0 0115 18.257V17.25m-6 0V3m6 0v14.25m-6 0h6m-7.5-3h9M3 12h18M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
     </svg>
 );
-// --- END NEW ICONS ---
+// --- END ICONS ---
 
-// --- NEW THEME OPTION COMPONENT ---
+// --- (FIX 3) Made theme option semi-transparent ---
 const ThemeOption = ({ value, label, icon, currentTheme, setTheme }) => {
     const isChecked = currentTheme === value;
     return (
-        <label className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 transition-all ${isChecked ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/50' : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+        <label className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 transition-all ${isChecked ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-900/50' : 'border-gray-300/50 dark:border-gray-600/50 hover:bg-gray-50/50 dark:hover:bg-gray-700/50'}`}>
             <input
                 type="radio"
                 name="theme"
@@ -80,21 +81,19 @@ const ThemeOption = ({ value, label, icon, currentTheme, setTheme }) => {
 
 
 const SettingsPage = () => {
-    const { user, updateUserName, updateUserPassword, theme, setTheme } = useAuth(); // <-- Get theme state
+    // --- (LOGIC UNCHANGED) ---
+    const { user, updateUserName, updateUserPassword, theme, setTheme } = useAuth(); 
 
-    // State for forms
     const [name, setName] = useState(user?.name || '');
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    // State for UI feedback
     const [nameLoading, setNameLoading] = useState(false);
     const [passLoading, setPassLoading] = useState(false);
-    const [nameMessage, setNameMessage] = useState(null); // { type: 'success' | 'error', text: '...' }
+    const [nameMessage, setNameMessage] = useState(null); 
     const [passMessage, setPassMessage] = useState(null);
 
-    // Sync state if user object changes
     useEffect(() => {
         if (user?.name) {
             setName(user.name);
@@ -128,7 +127,6 @@ const SettingsPage = () => {
         try {
             await updateUserPassword(newPassword, oldPassword);
             setPassMessage({ type: 'success', text: 'Password updated successfully!' });
-            // Clear password fields
             setOldPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -137,9 +135,11 @@ const SettingsPage = () => {
         }
         setPassLoading(false);
     };
+    // --- (END LOGIC) ---
 
 
     return (
+        // --- (FIX 4) Removed solid background from main page wrapper ---
         <div className="w-full p-4 py-8 sm:p-12">
             <div className="mx-auto max-w-3xl space-y-8">
                 
@@ -147,8 +147,8 @@ const SettingsPage = () => {
                     Account Settings
                 </h1>
 
-                {/* --- NEW THEME CARD --- */}
-                <div className="overflow-hidden rounded-lg bg-white shadow-xl dark:bg-gray-800">
+                {/* --- (FIX 5) Applied .glass-panel class --- */}
+                <div className="glass-panel overflow-hidden p-0">
                     <div className="p-8">
                         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Appearance</h2>
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Choose how OfgConnects looks to you.</p>
@@ -178,13 +178,11 @@ const SettingsPage = () => {
                         </div>
                     </div>
                 </div>
-                {/* --- END NEW THEME CARD --- */}
 
 
-                {/* --- Settings Card (Added dark mode classes) --- */}
-                <div className="overflow-hidden rounded-lg bg-white shadow-xl dark:bg-gray-800">
+                {/* --- (FIX 6) Applied .glass-panel class --- */}
+                <div className="glass-panel overflow-hidden p-0">
                     
-                    {/* --- Update Name Form --- */}
                     <form onSubmit={handleUpdateName} className="space-y-6 p-8">
                         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Profile Information</h2>
 
@@ -196,7 +194,8 @@ const SettingsPage = () => {
                             type="email"
                             value={user?.email || ''}
                             disabled
-                            className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm dark:bg-gray-700 dark:text-gray-300"
+                            // Overriding base styles for disabled input
+                            className="mt-1 block w-full rounded-md border-gray-300/50 bg-gray-100/50 shadow-sm sm:text-sm dark:bg-gray-700/50 dark:text-gray-300/70 dark:border-gray-600/50"
                         />
 
                         <SettingsInput
@@ -215,9 +214,9 @@ const SettingsPage = () => {
                         </div>
                     </form>
 
-                    <hr className="dark:border-gray-700" />
+                    {/* --- (FIX 7) Semi-transparent border --- */}
+                    <hr className="border-white/20 dark:border-gray-700/50" />
 
-                    {/* --- Update Password Form --- */}
                     <form onSubmit={handleUpdatePassword} className="space-y-6 p-8">
                         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Change Password</h2>
 

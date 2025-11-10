@@ -5,8 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Modal from './Modal';
 import UploadForm from './UploadForm';
 
-// --- (Icons remain unchanged) ---
-// MenuIcon is no longer needed, but keeping it doesn't hurt if you change your mind later.
+// --- (Icons) ---
 const MenuIcon = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="3" y1="12" x2="21" y2="12"></line> <line x1="3" y1="6" x2="21" y2="6"></line> <line x1="3" y1="18" x2="21" y2="18"></line> </svg> );
 const SearchIcon = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line> </svg> );
 const UploadIcon = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="17"></line> </svg> );
@@ -17,6 +16,7 @@ const LogoutIcon = (props) => <IconWrapper {...props}><path d="M9 21H5a2 2 0 0 1
 
 
 const Header = ({ toggleSidebar }) => {
+    // --- (Logic is unchanged) ---
     const { user, logoutUser } = useAuth();
     const navigate = useNavigate();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -32,7 +32,6 @@ const Header = ({ toggleSidebar }) => {
             console.error('Failed to log out:', error);
         }
     };
-    
     const getAvatarInitial = () => {
         if (user) {
             if (user.name) return user.name.charAt(0).toUpperCase();
@@ -40,7 +39,6 @@ const Header = ({ toggleSidebar }) => {
         }
         return '?';
     };
-
     const handleSearchSubmit = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
@@ -49,19 +47,18 @@ const Header = ({ toggleSidebar }) => {
             setIsMobileSearchOpen(false);
         }
     };
-
     const handleUploadComplete = () => {
         setIsUploadModalOpen(false); 
         window.location.reload(); 
     };
+    // --- (End Logic) ---
 
     return (
         <>
-            <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200/50 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-gray-800/50 dark:bg-gray-900/80">
+            {/* --- MODIFIED: Replaced all styles with .glass-panel --- */}
+            <header className="glass-panel sticky top-0 z-50 flex h-16 items-center justify-between px-4 sm:px-6 rounded-none border-b border-l-0 border-r-0 border-t-0">
                 
-                {/* --- Left Section --- */}
                 <div className="flex items-center gap-2">
-                    {/* --- REMOVED: Sidebar Toggle Button --- */}
                     <div className="cursor-pointer" onClick={() => navigate('/home')}>
                         <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">OFGConnects</span>
                     </div>
@@ -69,17 +66,17 @@ const Header = ({ toggleSidebar }) => {
 
                 {/* --- Middle Section (Desktop Search) --- */}
                 <div className="hidden flex-1 justify-center px-4 sm:flex sm:max-w-2xl">
-                    <form className="flex w-full overflow-hidden rounded-full border border-gray-300 dark:border-gray-700" onSubmit={handleSearchSubmit}>
+                    <form className="flex w-full overflow-hidden rounded-full border border-gray-300/80 dark:border-gray-700/80" onSubmit={handleSearchSubmit}>
                         <input 
                             type="text" 
                             placeholder="Search..." 
-                            className="flex-1 border-none bg-gray-100 px-5 py-2.5 text-base text-gray-900 outline-none dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400" 
+                            className="flex-1 border-none bg-gray-100/80 px-5 py-2.5 text-base text-gray-900 outline-none dark:bg-gray-800/80 dark:text-gray-100 dark:placeholder-gray-400" 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         <button 
                             type="submit"
-                            className="border-l border-gray-300 bg-gray-50 px-5 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                            className="border-l border-gray-300/80 bg-gray-50/80 px-5 text-gray-600 hover:bg-gray-100 dark:border-gray-700/80 dark:bg-gray-700/80 dark:text-gray-300 dark:hover:bg-gray-600"
                         >
                             <SearchIcon className="h-5 w-5" />
                         </button>
@@ -89,14 +86,14 @@ const Header = ({ toggleSidebar }) => {
                 {/* --- Right Section --- */}
                 <div className="flex items-center gap-2 sm:gap-4">
                     <button 
-                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 sm:hidden" 
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50 sm:hidden" 
                         title="Search"
                         onClick={() => setIsMobileSearchOpen(true)}
                     >
                         <SearchIcon className="h-6 w-6" />
                     </button>
                     <button 
-                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800" 
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50" 
                         title="Upload Video"
                         onClick={() => setIsUploadModalOpen(true)}
                     >
@@ -113,7 +110,8 @@ const Header = ({ toggleSidebar }) => {
                         </button>
                         
                         {isUserDropdownOpen && (
-                            <div className="absolute right-0 top-12 z-10 w-64 rounded-md border border-gray-200/50 bg-white/80 shadow-lg backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80">
+                            // --- MODIFIED: Applied .glass-panel to dropdown ---
+                            <div className="glass-panel absolute right-0 top-12 z-10 w-64 overflow-hidden rounded-md p-0 shadow-lg">
                                 <div className="flex items-center gap-3 p-4">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white">
                                         {getAvatarInitial()}
@@ -123,19 +121,19 @@ const Header = ({ toggleSidebar }) => {
                                         <div className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email || ''}</div>
                                     </div>
                                 </div>
-                                <hr className="border-gray-100 dark:border-gray-700" />
+                                <hr className="border-white/20 dark:border-gray-700/50" />
                                 <nav className="py-2">
                                     <Link 
                                         to="/settings" 
                                         onClick={() => setIsUserDropdownOpen(false)}
-                                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-700/50"
                                     >
                                         <SettingsIcon className="text-gray-500 dark:text-gray-400" />
                                         <span>Account Settings</span>
                                     </Link>
                                     <button 
                                         onClick={handleLogout}
-                                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-700/50"
                                     >
                                         <LogoutIcon className="text-gray-500 dark:text-gray-400" />
                                         <span>Logout</span>
@@ -146,9 +144,9 @@ const Header = ({ toggleSidebar }) => {
                     </div>
                 </div>
 
-                {/* --- Mobile Search Bar --- */}
+                {/* --- Mobile Search Bar (MODIFIED) --- */}
                 {isMobileSearchOpen && (
-                    <div className="absolute left-0 top-0 z-20 flex h-full w-full items-center border-b border-gray-200/50 bg-white/95 px-4 backdrop-blur-md dark:border-gray-800/50 dark:bg-gray-900/95 sm:hidden">
+                    <div className="glass-panel absolute left-0 top-0 z-20 flex h-full w-full items-center px-4 rounded-none border-b border-l-0 border-r-0 border-t-0 sm:hidden">
                         <form className="flex w-full" onSubmit={handleSearchSubmit}>
                             <input 
                                 type="text" 

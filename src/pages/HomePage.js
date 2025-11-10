@@ -4,7 +4,6 @@ import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import VideoCard from '../components/VideoCard';
-// --- 1. IMPORT INTERSECTION OBSERVER ---
 import { useInView } from 'react-intersection-observer';
 
 const HomePage = () => {
@@ -15,13 +14,10 @@ const HomePage = () => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [lastId, setLastId] = useState(null);
     const [hasMore, setHasMore] = useState(true);
-    const ITEMS_PER_PAGE = 12; // Increased slightly for better infinite feel
+    const ITEMS_PER_PAGE = 12;
 
-    // --- 2. SETUP OBSERVER HOOK ---
-    // 'ref' goes on the invisible element at the bottom
-    // 'inView' tells us if that element is visible on screen
     const { ref, inView } = useInView({
-        threshold: 0.5, // Trigger when 50% of the loader is visible
+        threshold: 0.5,
     });
 
     const fetchVideos = async (isLoadMore = false) => {
@@ -53,7 +49,6 @@ const HomePage = () => {
                 setVideos(response.documents);
             }
 
-            // If we got fewer items than requested, we've reached the end.
             setHasMore(response.documents.length === ITEMS_PER_PAGE);
 
             if (response.documents.length > 0) {
@@ -74,7 +69,6 @@ const HomePage = () => {
     }, []);
 
     // --- 3. INFINITE SCROLL TRIGGER ---
-    // Whenever 'inView' becomes true, if we aren't already loading and have more data, fetch next page.
     useEffect(() => {
         if (inView && hasMore && !loading && !loadingMore) {
             fetchVideos(true);
@@ -82,7 +76,8 @@ const HomePage = () => {
     }, [inView, hasMore, loading, loadingMore]);
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen dark:bg-gray-900 transition-colors duration-200">
+        // --- MODIFIED: Removed bg-gray-100 dark:bg-gray-900 ---
+        <div className="p-4 sm:p-6 lg:p-8 min-h-screen transition-colors duration-200">
             <div className="max-w-7xl mx-auto">
 
                 <div className="flex items-center justify-between mb-8">
@@ -112,7 +107,6 @@ const HomePage = () => {
                         )}
 
                         {/* --- 4. INVISIBLE TRIGGER ELEMENT --- */}
-                        {/* This element sits at the bottom. When it scrolls into view, the effect above fires. */}
                         {hasMore && videos.length > 0 && (
                             <div ref={ref} className="flex justify-center mt-10 py-4">
                                 {loadingMore ? (
@@ -121,7 +115,6 @@ const HomePage = () => {
                                         <span>Loading more...</span>
                                     </div>
                                 ) : (
-                                    // Optional: Keep a subtle "invisible" height so the observer hits it easily
                                     <div className="h-10 w-full" /> 
                                 )}
                             </div>

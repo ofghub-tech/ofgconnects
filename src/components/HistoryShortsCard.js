@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 // Helper function to format view count
 const formatViews = (views) => {
+    // --- (LOGIC UNCHANGED) ---
     if (!views) return '0 views';
     if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M views';
     if (views >= 1000) return (views / 1000).toFixed(1) + 'K views';
@@ -16,13 +17,16 @@ const HistoryShortsCard = ({ video }) => {
     return (
         <Link 
             // Send user to the correct watch page based on category
-            to={video.category === 'shorts' ? `/shorts/${video.$id}` : `/watch/${video.$id}`}
-            className="flex flex-col overflow-hidden rounded-lg bg-white shadow-sm transition-transform duration-200 ease-in-out hover:shadow-md hover:-translate-y-1 dark:bg-gray-800"
+            to={video.category === 'shorts' ? `/shorts/watch/${video.$id}` : `/watch/${video.$id}`}
+            // --- (FIX) Replaced solid bg/shadow with .glass-panel ---
+            // Added p-0 to override the panel's default padding
+            className="glass-panel flex flex-col overflow-hidden p-0 transition-transform duration-200 ease-in-out hover:-translate-y-1"
         >
             {/* 9:16 Aspect Ratio Container */}
             <div className="aspect-[9/16] w-full overflow-hidden">
                 <img
-                    className="h-full w-full object-cover"
+                    // --- (FIX) Rounded top corners to match panel ---
+                    className="h-full w-full object-cover rounded-t-xl"
                     src={video.thumbnailUrl}
                     alt={video.title}
                 />

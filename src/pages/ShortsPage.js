@@ -7,17 +7,16 @@ import { Query } from 'appwrite';
 import { useInView } from 'react-intersection-observer';
 
 const ShortsPage = () => {
+    // --- (LOGIC UNCHANGED) ---
     const navigate = useNavigate();
     const [shorts, setShorts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- PAGINATION STATE ---
     const [loadingMore, setLoadingMore] = useState(false);
     const [lastId, setLastId] = useState(null);
     const [hasMore, setHasMore] = useState(true);
     const ITEMS_PER_PAGE = 18;
 
-    // --- OBSERVER HOOK ---
     const { ref, inView } = useInView({
         threshold: 0.5,
     });
@@ -74,7 +73,6 @@ const ShortsPage = () => {
         }
     }, [inView, hasMore, loading, loadingMore]);
 
-    // Helper handlers for hover-preview
     const handleMouseOver = (e) => { 
         const video = e.target;
         if (video.paused) {
@@ -89,41 +87,40 @@ const ShortsPage = () => {
             video.currentTime = 0; 
         }
     };
+    // --- (END LOGIC) ---
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 min-h-full bg-gray-50 dark:bg-gray-900">
+        // --- (FIX 1) Removed solid bg-gray-50 dark:bg-gray-900 ---
+        <div className="p-4 sm:p-6 lg:p-8 min-h-full">
             <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Shorts</h1>
 
             {loading && (
                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                </div>
+                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                 </div>
             )}
 
             {!loading && (
                 <>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                         {shorts.map(short => {
-                            // --- NEW LOGIC: Determine thumbnail vs first frame ---
                             const hasThumbnail = !!short.thumbnailUrl;
 
                             return (
+                                // --- (FIX 2) Applied .glass-panel, removed solids/shadows ---
                                 <div
                                     key={short.$id}
-                                    className="relative aspect-[9/16] rounded-lg overflow-hidden shadow-md cursor-pointer group transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105 bg-gray-800"
+                                    className="glass-panel relative aspect-[9/16] overflow-hidden p-0 cursor-pointer group transition-all duration-300 ease-in-out hover:scale-105"
                                     onClick={() => navigate(`/watch/${short.$id}`)}
                                 >
                                     <video
                                         src={short.videoUrl}
-                                        // If we have a thumbnail, use it. Otherwise, undefined lets the browser use the video frame.
                                         poster={hasThumbnail ? short.thumbnailUrl : undefined}
-                                        className="w-full h-full object-cover"
+                                        // --- (FIX 3) Rounded video to match panel ---
+                                        className="w-full h-full object-cover rounded-xl"
                                         loop 
                                         muted 
                                         playsInline
-                                        // PERFORMANCE KEY: 
-                                        // If we have a thumbnail, don't load video until hover ('none').
-                                        // If NO thumbnail, we MUST load 'metadata' to show the first frame.
                                         preload={hasThumbnail ? "none" : "metadata"}
                                         onMouseOver={handleMouseOver}
                                         onMouseOut={handleMouseOut}
@@ -145,7 +142,6 @@ const ShortsPage = () => {
                         </p>
                     )}
 
-                    {/* --- INFINITE SCROLL TRIGGER --- */}
                     {hasMore && shorts.length > 0 && (
                         <div ref={ref} className="flex justify-center mt-10 py-4">
                             {loadingMore ? (

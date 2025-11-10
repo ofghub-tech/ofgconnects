@@ -37,7 +37,8 @@ const ProtectedRoute = ({ children }) => {
 
 const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
     return (
-        <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-950">
+        // --- MODIFIED: Removed bg-gray-100 dark:bg-gray-950 ---
+        <div className="flex h-screen overflow-hidden">
             <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Header toggleSidebar={toggleSidebar} />
@@ -51,7 +52,6 @@ const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
 
 function App() {
     const { loading } = useAuth();
-    // --- CHANGE IS HERE: Set default to 'false' ---
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
     const { bibleView } = useBible();
 
