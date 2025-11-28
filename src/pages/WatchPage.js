@@ -125,21 +125,25 @@ const WatchPage = () => {
     }, [videoId, navigate, user]);
     // --- End Logic ---
 
-    // --- MODIFIED: Loading/Error states are now transparent ---
     if (loading) return <div className="flex w-full h-[70vh] items-center justify-center"><p className="text-neutral-500 dark:text-gray-400">Loading...</p></div>;
     if (!video) return <div className="flex w-full h-[70vh] items-center justify-center"><p className="text-red-600">Video not found.</p></div>;
 
     return (
-        // --- MODIFIED: Removed bg-white dark:bg-gray-900 ---
         <div className="w-full text-neutral-900 p-4 sm:p-6 lg:p-8 dark:text-gray-100">
             <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-3 lg:gap-x-6 gap-y-6">
                 <div className="lg:col-span-2">
-                    {/* --- MODIFIED: Player is rounded --- */}
+                    
+                    {/* --- FIXED: Using video.url_4k instead of video.videoUrl --- */}
                     <div className="w-full aspect-video rounded-xl bg-black mb-4 overflow-hidden">
-                        <video controls src={video.videoUrl} className="w-full h-full">Not supported.</video>
+                        <video 
+                            controls 
+                            src={video.url_4k || video.videoUrl} // Tries new field first, then old
+                            className="w-full h-full"
+                        >
+                            Not supported.
+                        </video>
                     </div>
 
-                    {/* --- MODIFIED: Wrap info in a glass panel --- */}
                     <div className="glass-panel p-4 sm:p-6 mb-6">
                         <h1 className="mb-3 text-xl sm:text-2xl font-bold">{video.title}</h1>
                         <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-gray-400 mb-3">
@@ -160,7 +164,6 @@ const WatchPage = () => {
                                     <LikeButton videoId={video.$id} initialLikeCount={video.likeCount || 0} />
                                     <ShareButton videoId={video.$id} videoTitle={video.title} />
                                     <button
-                                        // --- MODIFIED: Button theme for glass ---
                                         className={`flex items-center justify-center gap-2 py-2 px-4 h-9 rounded-full font-medium text-sm bg-gray-100/50 hover:bg-gray-100/80 dark:bg-gray-700/50 dark:text-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 ${isSaved ? 'bg-gray-200/80 font-semibold dark:bg-gray-600' : ''}`}
                                         onClick={handleToggleSave} disabled={isTogglingSave}
                                     >
@@ -171,13 +174,11 @@ const WatchPage = () => {
                             </div>
                         )}
                         
-                        {/* --- MODIFIED: Description box theme for glass --- */}
                         <div className="mt-4 p-4 bg-gray-100/50 hover:bg-gray-100/80 transition-colors rounded-lg cursor-pointer dark:bg-gray-800/50 dark:hover:bg-gray-800">
                             <p className="text-sm leading-relaxed whitespace-pre-wrap">{video.description || 'No description.'}</p>
                         </div>
                     </div>
                     
-                    {/* --- MODIFIED: Put comments in a glass panel --- */}
                     <div className="glass-panel p-4 sm:p-6">
                         <Comments videoId={videoId} />
                     </div>

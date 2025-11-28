@@ -1,40 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { databases, storage } from '../appwriteConfig';
+import { databases } from '../appwriteConfig'; 
 import { useAuth } from '../context/AuthContext';
 import {
     DATABASE_ID,
     COLLECTION_ID_VIDEOS,
-    BUCKET_ID_VIDEOS,
 } from '../appwriteConfig';
-import { ID, Permission, Role } from 'appwrite';
-// 1. Import AWS SDK for R2 Uploads
-import { S3Client } from "@aws-sdk/client-s3";
+import { ID } from 'appwrite';
+
+// Import R2 Client and Commands
+import { r2Client } from '../r2Config'; 
 import { Upload } from "@aws-sdk/lib-storage";
+import { DeleteObjectCommand } from "@aws-sdk/client-s3"; 
 
 // --- Constants ---
-const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB (R2 handles large files well)
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
 const MAX_THUMB_SIZE = 5 * 1024 * 1024;        // 5MB
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'];
 const ALLOWED_THUMB_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
-// --- Initialize R2 Client ---
-const r2Client = new S3Client({
-    region: "auto",
-    endpoint: process.env.REACT_APP_R2_ENDPOINT,
-    credentials: {
-        accessKeyId: process.env.REACT_APP_R2_ACCESS_KEY_ID,
-        secretAccessKey: process.env.REACT_APP_R2_SECRET_ACCESS_KEY,
-    },
-});
-
-// --- UI Components (Spinner, Alert, Inputs) ---
-const Spinner = () => (
-    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-);
-
+// --- UI Components ---
 const Alert = ({ type, message }) => {
     const isError = type === 'error';
     const bgColor = isError ? 'bg-red-100/80 dark:bg-red-900/80' : 'bg-green-100/80 dark:bg-green-900/80';
@@ -103,8 +87,20 @@ const UploadForm = ({ onUploadSuccess }) => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     
-    const uploadedThumbId = useRef(null);
+    // Refs
     const isSubmitted = useRef(false);
+    const currentUploadRef = useRef(null); // Tracks the active upload instance
+    const uploadedFileKeyRef = useRef(null); // Tracks the file key to delete if things go wrong
+
+    // Cleanup on unmount (If user navigates away while uploading)
+    useEffect(() => {
+        return () => {
+            if (currentUploadRef.current) {
+                console.log("Navigated away, aborting upload...");
+                currentUploadRef.current.abort();
+            }
+        };
+    }, []);
 
     // Thumbnail Preview Effect
     useEffect(() => {
@@ -114,20 +110,13 @@ const UploadForm = ({ onUploadSuccess }) => {
         return () => URL.revokeObjectURL(objectUrl);
     }, [thumbnailFile]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (!isSubmitted.current && uploadedThumbId.current) {
-                try { storage.deleteFile(BUCKET_ID_VIDEOS, uploadedThumbId.current); } catch (e) { }
-            }
-        };
-    }, []);
-
     const resetForm = () => {
         setTitle(''); setDescription(''); setTags(''); setCategory('');
         setVideoFile(null); setThumbnailFile(null); setThumbnailPreview(null);
         setStep(1); setIsUploading(false); setError(null); setSuccess(null);
-        setUploadProgress(0); isSubmitted.current = false; uploadedThumbId.current = null;
+        setUploadProgress(0); isSubmitted.current = false;
+        currentUploadRef.current = null;
+        uploadedFileKeyRef.current = null;
     };
 
     const handleVideoFileChange = (e) => {
@@ -142,7 +131,7 @@ const UploadForm = ({ onUploadSuccess }) => {
             return;
         }
         setVideoFile(file);
-        setStep(2); // Go to details page
+        setStep(2); 
     };
 
     const handleThumbnailChange = (e) => {
@@ -150,34 +139,80 @@ const UploadForm = ({ onUploadSuccess }) => {
         if (file) setThumbnailFile(file);
     };
 
-    // --- R2 UPLOAD LOGIC ---
-    const uploadVideoToR2 = async (file, uniqueFileId) => {
-        const fileName = `${uniqueFileId}_${file.name.replace(/\s+/g, '_')}`; // Clean filename
+    // --- HELPER: DELETE FILE IF UPLOAD FAILS ---
+    const deleteFileFromR2 = async (bucket, key) => {
+        try {
+            const command = new DeleteObjectCommand({
+                Bucket: bucket,
+                Key: key,
+            });
+            await r2Client.send(command);
+            console.log(`Cleaned up partial/failed file: ${key}`);
+        } catch (err) {
+            console.error("Failed to cleanup file:", err);
+        }
+    };
+
+    // --- GENERIC R2 UPLOAD FUNCTION ---
+    const uploadToR2 = async (file, bucketName, domainUrl, uniqueFileId, isVideo = false) => {
+        // --- FIX IS HERE: Aggressively sanitize filename ---
+        // Replaces anything that is NOT a letter, number, dot, or hyphen with an underscore
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); 
+        const fileName = `${uniqueFileId}_${cleanName}`;
         
+        // Save the key in case we need to delete it on error
+        if (isVideo) uploadedFileKeyRef.current = fileName;
+
         const upload = new Upload({
             client: r2Client,
             params: {
-                Bucket: process.env.REACT_APP_R2_TEMP_BUCKET_NAME,
+                Bucket: bucketName,
                 Key: fileName,
                 Body: file,
                 ContentType: file.type,
             },
+            // 5MB part size for better multipart handling
+            partSize: 5 * 1024 * 1024, 
+            leavePartsOnError: false, 
         });
 
-        upload.on("httpUploadProgress", (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percent);
-        });
+        // Store reference if it's the main video
+        if (isVideo) currentUploadRef.current = upload;
+
+        if (isVideo) {
+            upload.on("httpUploadProgress", (progress) => {
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                setUploadProgress(percent);
+            });
+        }
 
         await upload.done();
         
-        // Return the Public View URL
-        // If you don't have a custom domain, R2 public links are usually:
-        // https://<BUCKET_NAME>.<ACCOUNT_HASH>.r2.dev/<KEY>
-        // But better to use the variable we set in .env
-        const publicUrl = `${process.env.REACT_APP_R2_PUBLIC_DOMAIN}/${fileName}`;
-        
-        return { fileUrl: publicUrl, fileId: fileName };
+        // Clear reference after success
+        if (isVideo) currentUploadRef.current = null;
+
+        const publicUrl = `${domainUrl}/${fileName}`;
+        return { publicUrl, fileName };
+    };
+
+    // --- CANCEL HANDLER ---
+    const handleCancelUpload = async () => {
+        if (currentUploadRef.current) {
+            try {
+                // 1. Abort the upload stream
+                await currentUploadRef.current.abort();
+                setIsUploading(false);
+                setUploadProgress(0);
+                setError("Upload cancelled by user.");
+                
+                // 2. Double check cleanup (Library usually handles it, but safety first)
+                if (uploadedFileKeyRef.current) {
+                    await deleteFileFromR2(process.env.REACT_APP_R2_TEMP_BUCKET_NAME, uploadedFileKeyRef.current);
+                }
+            } catch (err) {
+                console.error("Error cancelling:", err);
+            }
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -190,27 +225,42 @@ const UploadForm = ({ onUploadSuccess }) => {
         setIsUploading(true);
         setError(null);
 
-        try {
-            // 1. Generate Unique ID
-            const uniqueId = ID.unique();
+        // Define these outside try block so catch block can access them
+        const uniqueId = ID.unique();
+        let r2FileKey = null;
 
-            // 2. Upload Video to R2 (Cloudflare)
-            const { fileUrl, fileId: r2FileKey } = await uploadVideoToR2(videoFile, uniqueId);
+        try {
             
-            // 3. Upload Thumbnail to Appwrite (if exists)
+            // 1. Upload Video to R2 (TEMP BUCKET)
+            const videoUploadResult = await uploadToR2(
+                videoFile, 
+                process.env.REACT_APP_R2_TEMP_BUCKET_NAME, 
+                process.env.REACT_APP_R2_PUBLIC_DOMAIN, 
+                uniqueId,
+                true // isVideo
+            );
+            
+            const videoUrl = videoUploadResult.publicUrl;
+            r2FileKey = videoUploadResult.fileName;
+
+            // 2. Upload Thumbnail to R2 (MAIN BUCKET) - Optional
             let thumbnailUrlString = null;
             if (thumbnailFile) {
-                const thumbId = ID.unique();
-                uploadedThumbId.current = thumbId;
-                await storage.createFile(BUCKET_ID_VIDEOS, thumbId, thumbnailFile, [Permission.read(Role.any())]);
-                thumbnailUrlString = storage.getFileView(BUCKET_ID_VIDEOS, thumbId);
+                const { publicUrl } = await uploadToR2(
+                    thumbnailFile,
+                    process.env.REACT_APP_R2_BUCKET_ID,
+                    process.env.REACT_APP_R2_MAIN_DOMAIN,
+                    `${uniqueId}_thumb`,
+                    false
+                );
+                thumbnailUrlString = publicUrl;
             }
 
-            // 4. Save Metadata to Appwrite Database
+            // 3. Save Metadata to Appwrite Database
             await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
-                uniqueId, // Use same ID for Doc and Video ID prefix
+                uniqueId, 
                 {
                     title,
                     description,
@@ -218,16 +268,11 @@ const UploadForm = ({ onUploadSuccess }) => {
                     username: user.name,
                     category,
                     tags: tags.trim(),
-                    
-                    // The Magic Links
-                    videoUrl: fileUrl,       // Points to R2 Temp initially
+                    url_4k: videoUrl,       
                     thumbnailUrl: thumbnailUrlString,
-                    
-                    // Automation Flags
-                    adminStatus: 'pending',        // Admin needs to approve
-                    compressionStatus: 'waiting',  // Worker needs to pick this up
-                    sourceFileId: r2FileKey,       // Key for Worker to download
-                    
+                    adminStatus: 'pending',
+                    compressionStatus: 'waiting',
+                    sourceFileId: r2FileKey,
                     likeCount: 0,
                     commentCount: 0,
                     view_count: 0
@@ -241,9 +286,25 @@ const UploadForm = ({ onUploadSuccess }) => {
 
         } catch (err) {
             console.error(err);
-            setError(`Upload Failed: ${err.message}`);
+            
+            // --- CLEANUP ON FAILURE ---
+            // If the error was NOT a user cancellation (AbortError), execute cleanup
+            if (err.name !== 'AbortError') {
+                setError(`Upload Failed: ${err.message}`);
+                
+                // If we have a file key, DELETE IT from R2 so we don't pay for failed uploads
+                if (uploadedFileKeyRef.current) {
+                    console.log("Upload failed, deleting partial file...");
+                    await deleteFileFromR2(process.env.REACT_APP_R2_TEMP_BUCKET_NAME, uploadedFileKeyRef.current);
+                }
+            } else {
+                console.log("Upload aborted successfully.");
+            }
         } finally {
-            setIsUploading(false);
+            if (!currentUploadRef.current) {
+                // Only turn off loading if we aren't still aborting
+                setIsUploading(false);
+            }
         }
     };
 
@@ -267,16 +328,24 @@ const UploadForm = ({ onUploadSuccess }) => {
                         {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
                         {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
 
-                        {/* Progress Bar */}
+                        {/* Progress Bar with Cancel Button */}
                         {isUploading && (
                             <div className="mb-6 p-4 bg-blue-50/50 border border-blue-200/50 rounded-md dark:bg-blue-900/20">
                                 <div className="flex justify-between mb-1">
-                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Uploading to R2 Storage...</span>
+                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Uploading to OFG Storage...</span>
                                     <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{uploadProgress}%</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-3">
                                     <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                                 </div>
+                                {/* CANCEL BUTTON */}
+                                <button 
+                                    type="button" 
+                                    onClick={handleCancelUpload}
+                                    className="text-xs text-red-600 hover:text-red-800 font-medium underline"
+                                >
+                                    Cancel Upload
+                                </button>
                             </div>
                         )}
 
