@@ -1,21 +1,14 @@
-// src/pages/ShortsWatchPage.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { databases } from '../appwriteConfig';
-import { useAuth } from '../context/AuthContext'; // <-- ADDED
-import {
-    DATABASE_ID,
-    COLLECTION_ID_VIDEOS,
-    COLLECTION_ID_HISTORY // <-- ADDED
-} from '../appwriteConfig';
-import { Query, ID, Permission, Role } from 'appwrite'; // <-- UPDATED IMPORTS
+import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS, COLLECTION_ID_HISTORY } from '../appwriteConfig';
+import { useAuth } from '../context/AuthContext';
+import { Query, ID, Permission, Role } from 'appwrite';
 import ShortsVideoCard from '../components/ShortsVideoCard';
 
 const ShortsWatchPage = () => {
-    // --- (LOGIC UNCHANGED) ---
     const { videoId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth(); // <-- ADDED
+    const { user } = useAuth();
     
     const [videos, setVideos] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,7 +26,7 @@ const ShortsWatchPage = () => {
                 [Query.equal('userId', userId), Query.equal('videoId', videoId), Query.limit(1)]
             );
 
-            if (historyCheck.total > 0) return null; // Already watched
+            if (historyCheck.total > 0) return null;
 
             await databases.createDocument(
                 DATABASE_ID, COLLECTION_ID_HISTORY, ID.unique(),
@@ -57,11 +50,21 @@ const ShortsWatchPage = () => {
         const fetchVideos = async () => {
             setLoading(true);
             try {
+                // Fetch the specific video user clicked on
                 const initialVideo = await databases.getDocument(DATABASE_ID, COLLECTION_ID_VIDEOS, videoId);
+                
+                // Fetch other shorts for the feed
                 const response = await databases.listDocuments(
                     DATABASE_ID, COLLECTION_ID_VIDEOS,
-                    [Query.equal('category', 'shorts'), Query.notEqual('$id', videoId), Query.orderDesc('$createdAt')]
+                    [
+                        Query.equal('category', 'shorts'),
+                        Query.equal('admin_status', 'approved'), // Filter for approved shorts
+                        Query.notEqual('$id', videoId),
+                        Query.orderDesc('$createdAt')
+                    ]
                 );
+                
+                // Combine them
                 setVideos([initialVideo, ...response.documents].filter(v => v));
                 setCurrentIndex(0);
             } catch (error) {
@@ -120,13 +123,10 @@ const ShortsWatchPage = () => {
         if (relativeIndex === 1) return { transform: 'translateX(0) scale(0.9)', opacity: 0.7, zIndex: 9 };
         return { transform: `translateX(0) scale(${0.9 - (relativeIndex * 0.1)})`, opacity: 0.4, zIndex: 8 - relativeIndex };
     };
-    // --- (END LOGIC) ---
 
-    // --- (FIX) Removed bg-black from loading screen ---
     if (loading) return <div className="flex items-center justify-center h-full w-full"><p className="text-xl text-neutral-400">Loading Shorts...</p></div>;
 
     return (
-        // --- (FIX) Removed bg-black from main wrapper ---
         <div className="h-full w-full text-white relative flex justify-center items-center overflow-hidden" onWheel={handleWheel}>
             <div className="h-full w-full relative">
                 {videos.map((video, index) => {

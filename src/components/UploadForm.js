@@ -15,7 +15,9 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 // --- Constants ---
 const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
 const MAX_THUMB_SIZE = 5 * 1024 * 1024;        // 5MB
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'];
+
+// --- UPDATED: Restrict to MP4 and MOV for mobile compatibility ---
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime']; 
 const ALLOWED_THUMB_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 // --- UI Components ---
@@ -122,10 +124,13 @@ const UploadForm = ({ onUploadSuccess }) => {
     const handleVideoFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        
+        // --- UPDATED ERROR MESSAGE ---
         if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
-            setError('Invalid video format. Use MP4, WebM, or MOV.');
+            setError('Invalid video format. Please use MP4 or MOV to ensure mobile compatibility.');
             return;
         }
+        
         if (file.size > MAX_VIDEO_SIZE) {
             setError('Video too large (Max 5GB).');
             return;

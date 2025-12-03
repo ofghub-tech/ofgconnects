@@ -107,9 +107,15 @@ const SongsWatchPage = () => {
         <div className="w-full text-neutral-900 p-4 sm:p-6 lg:p-8 dark:text-gray-100">
             <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-3 lg:gap-x-6 gap-y-6">
                 <div className="lg:col-span-2">
-                    {/* --- (FIX) Rounded video player --- */}
+                    {/* --- (FIX) Rounded video player with 4K Fallback --- */}
                     <div className="w-full aspect-video rounded-xl bg-black mb-4 overflow-hidden">
-                        <video controls src={video.videoUrl} className="w-full h-full">Not supported.</video>
+                        <video 
+                            controls 
+                            src={video.url_4k || video.videoUrl} 
+                            className="w-full h-full"
+                        >
+                            Not supported.
+                        </video>
                     </div>
 
                     {/* --- (FIX) Applied .glass-panel to info box --- */}

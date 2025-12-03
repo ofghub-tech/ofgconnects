@@ -202,12 +202,13 @@ const ShortsVideoCard = ({ video, isActive, onClose }) => {
         >
             
             <div className="relative w-full h-full cursor-pointer">
+                {/* --- (FIX) Added 4K Fallback to Shorts --- */}
                 <video
                     ref={videoRef}
                     loop
                     playsInline
                     muted={isMuted}
-                    src={currentVideo.videoUrl} 
+                    src={currentVideo.url_4k || currentVideo.videoUrl} 
                     // --- (FIX) Removed solid background, added rounded corners ---
                     className="w-full h-full object-contain rounded-xl"
                 >
