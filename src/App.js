@@ -1,118 +1,80 @@
-// src/App.js
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { BibleProvider } from './context/BibleContext';
 import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+
+// --- NEW IMPORT: The Smart Widget Wrapper ---
+import BibleWidget from './components/BibleFeature/BibleWidget';
+
+// Pages
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import WatchPage from './pages/WatchPage';
-import MySpacePage from './pages/MySpacePage';
-import FollowingPage from './pages/FollowingPage';
 import ShortsPage from './pages/ShortsPage';
+import ShortsWatchPage from './pages/ShortsWatchPage';
+import MySpacePage from './pages/MySpacePage';
+import SearchPage from './pages/SearchPage';
+import HistoryPage from './pages/HistoryPage';
+import LikedVideosPage from './pages/LikedVideosPage';
+import SettingsPage from './pages/SettingsPage';
 import SongsPage from './pages/SongsPage';
 import KidsPage from './pages/KidsPage';
-import Sidebar from './components/Sidebar';
-import HistoryPage from './pages/HistoryPage';
+import FollowingPage from './pages/FollowingPage';
 import WatchLaterPage from './pages/WatchLaterPage';
-import LikedVideosPage from './pages/LikedVideosPage';
-import ShortsWatchPage from './pages/ShortsWatchPage';
-import VideoRouter from './components/VideoRouter';
-import SongsWatchPage from './pages/SongsWatchPage';
-import KidsWatchPage from './pages/KidsWatchPage';
-import SearchPage from './pages/SearchPage';
-import SettingsPage from './pages/SettingsPage';
 
-// --- BIBLE IMPORTS ---
-import { useBible } from './context/BibleContext';
-import GlobalBibleIcon from './components/BibleFeature/GlobalBibleIcon';
-import BiblePanel from './components/BibleFeature/BiblePanel';
-
+// --- Protected Route Component ---
 const ProtectedRoute = ({ children }) => {
-    const { user } = useAuth();
-    if (!user) {
-        return <Navigate to="/" />;
-    }
-    return children;
-};
-
-const AppLayout = ({ children, isSidebarOpen, toggleSidebar }) => {
-    return (
-        // --- MODIFIED: Removed bg-gray-100 dark:bg-gray-950 ---
-        <div className="flex h-screen overflow-hidden">
-            <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-            <div className="flex flex-1 flex-col overflow-hidden">
-                <Header toggleSidebar={toggleSidebar} />
-                <main className="flex-1 overflow-y-auto">
-                    {children}
-                </main>
-            </div>
-        </div>
-    );
+    const { user, loading } = useAuth();
+    if (loading) return <div className="min-h-screen bg-black" />; // Loading state
+    return user ? children : <Navigate to="/login" />;
 };
 
 function App() {
-    const { loading } = useAuth();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
-    const { bibleView } = useBible();
-
-    const toggleSidebar = () => {
-        setIsSidebarOpen(prev => !prev);
-    };
-
-    if (loading) return null; 
+    // Note: We no longer need local state (isBibleOpen) here
+    // The BibleContext inside BibleWidget handles all of that now.
 
     return (
         <Router>
-            {/* --- BIBLE UI --- */}
-            <GlobalBibleIcon />
-            {bibleView === 'sidebar' && (
-                <div className="fixed top-0 right-0 z-40 h-full w-full max-w-md p-4 pt-20 pointer-events-none">
-                    <div className="h-full w-full pointer-events-auto">
-                        <BiblePanel />
-                    </div>
-                </div>
-            )}
-            {bibleView === 'fullscreen' && (
-                <div className="fixed inset-0 z-40 bg-gray-100 dark:bg-gray-950 p-4 pt-20">
-                    <div className="h-full w-full max-w-4xl mx-auto">
-                        <BiblePanel />
-                    </div>
-                </div>
-            )}
-            {/* --- END BIBLE UI --- */}
+            <AuthProvider>
+                <BibleProvider>
+                    <div className="min-h-screen bg-black text-gray-100 font-sans selection:bg-blue-500/30">
+                        
+                        {/* --- FIXED ELEMENTS --- */}
+                        <Header />
+                        <Sidebar />
+                        
+                        {/* --- MAIN CONTENT WRAPPER --- */}
+                        <main className="pt-24 pl-20 pr-4 sm:pl-24 lg:pr-8 min-h-screen transition-all duration-300">
+                            <Routes>
+                                {/* Public Routes */}
+                                <Route path="/login" element={<LoginPage />} />
+                                
+                                {/* Protected Routes */}
+                                <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                                <Route path="/watch/:id" element={<ProtectedRoute><WatchPage /></ProtectedRoute>} />
+                                <Route path="/shorts" element={<ProtectedRoute><ShortsPage /></ProtectedRoute>} />
+                                <Route path="/shorts/watch/:id" element={<ProtectedRoute><ShortsWatchPage /></ProtectedRoute>} />
+                                <Route path="/myspace" element={<ProtectedRoute><MySpacePage /></ProtectedRoute>} />
+                                <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+                                <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+                                <Route path="/liked" element={<ProtectedRoute><LikedVideosPage /></ProtectedRoute>} />
+                                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                                <Route path="/songs" element={<ProtectedRoute><SongsPage /></ProtectedRoute>} />
+                                <Route path="/kids" element={<ProtectedRoute><KidsPage /></ProtectedRoute>} />
+                                <Route path="/following" element={<ProtectedRoute><FollowingPage /></ProtectedRoute>} />
+                                <Route path="/watch-later" element={<ProtectedRoute><WatchLaterPage /></ProtectedRoute>} />
+                            </Routes>
+                        </main>
 
-            <Routes>
-                <Route path="/" element={<LoginPage />} />
-                
-                <Route
-                    path="*"
-                    element={
-                        <ProtectedRoute>
-                            <AppLayout isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar}>
-                                <Routes>
-                                    <Route path="/home" element={<HomePage />} />
-                                    <Route path="/search" element={<SearchPage />} />
-                                    <Route path="/watch/:videoId" element={<VideoRouter />} />
-                                    <Route path="/videos/watch/:videoId" element={<WatchPage />} />
-                                    <Route path="/shorts/watch/:videoId" element={<ShortsWatchPage />} />
-                                    <Route path="/songs/watch/:videoId" element={<SongsWatchPage />} />
-                                    <Route path="/kids/watch/:videoId" element={<KidsWatchPage />} />
-                                    <Route path="/myspace" element={<MySpacePage />} />
-                                    <Route path="/following" element={<FollowingPage />} />
-                                    <Route path="/history" element={<HistoryPage />} />
-                                    <Route path="/watch-later" element={<WatchLaterPage />} />
-                                    <Route path="/liked-videos" element={<LikedVideosPage />} />
-                                    <Route path="/shorts" element={<ShortsPage />} />
-                                    <Route path="/songs" element={<SongsPage />} />
-                                    <Route path="/kids" element={<KidsPage />} />
-                                    <Route path="/settings" element={<SettingsPage />} />
-                                    <Route path="*" element={<Navigate to="/home" />} />
-                                </Routes>
-                            </AppLayout>
-                        </ProtectedRoute>
-                    }
-                />
-            </Routes>
+                        {/* --- FLOATING FEATURES --- */}
+                        {/* This single component replaces the previous Icon+Panel combo */}
+                        <BibleWidget />
+
+                    </div>
+                </BibleProvider>
+            </AuthProvider>
         </Router>
     );
 }

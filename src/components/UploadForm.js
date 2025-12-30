@@ -14,11 +14,60 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 // --- Constants ---
 const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
-const MAX_THUMB_SIZE = 5 * 1024 * 1024;        // 5MB
-
-// --- UPDATED: Restrict to MP4 and MOV for mobile compatibility ---
+// Restrict to MP4 and MOV for mobile compatibility
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime']; 
 const ALLOWED_THUMB_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+
+// --- HELPER: Generate Thumbnail from Video File ---
+const generateVideoThumbnail = (file) => {
+    return new Promise((resolve, reject) => {
+        const video = document.createElement("video");
+        const canvas = document.createElement("canvas");
+        
+        video.autoplay = false;
+        video.muted = true;
+        video.playsInline = true;
+        video.src = URL.createObjectURL(file);
+
+        // Capture frame at 1.0 second (avoids black start frames)
+        const CAPTURE_TIME = 1.0;
+
+        video.onloadeddata = () => {
+            video.currentTime = CAPTURE_TIME;
+        };
+
+        video.onseeked = () => {
+            // Ensure video has dimensions
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                URL.revokeObjectURL(video.src);
+                reject("Video dimensions zero");
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            canvas.toBlob((blob) => {
+                URL.revokeObjectURL(video.src);
+                if (blob) {
+                    // Create a File object that mimics a user upload
+                    const thumbFile = new File([blob], "auto-thumb.jpg", { type: "image/jpeg" });
+                    resolve(thumbFile);
+                } else {
+                    reject("Blob creation failed");
+                }
+            }, "image/jpeg", 0.8); // 80% Quality JPG
+        };
+
+        video.onerror = (e) => {
+            URL.revokeObjectURL(video.src);
+            reject(e);
+        };
+    });
+};
 
 // --- UI Components ---
 const Alert = ({ type, message }) => {
@@ -85,16 +134,16 @@ const UploadForm = ({ onUploadSuccess }) => {
     
     // Status
     const [isUploading, setIsUploading] = useState(false);
+    const [isGeneratingThumb, setIsGeneratingThumb] = useState(false); // New State
     const [uploadProgress, setUploadProgress] = useState(0);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     
     // Refs
     const isSubmitted = useRef(false);
-    const currentUploadRef = useRef(null); // Tracks the active upload instance
-    const uploadedFileKeyRef = useRef(null); // Tracks the file key to delete if things go wrong
+    const currentUploadRef = useRef(null);
+    const uploadedFileKeyRef = useRef(null);
 
-    // Cleanup on unmount (If user navigates away while uploading)
     useEffect(() => {
         return () => {
             if (currentUploadRef.current) {
@@ -121,11 +170,10 @@ const UploadForm = ({ onUploadSuccess }) => {
         uploadedFileKeyRef.current = null;
     };
 
-    const handleVideoFileChange = (e) => {
+    const handleVideoFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         
-        // --- UPDATED ERROR MESSAGE ---
         if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
             setError('Invalid video format. Please use MP4 or MOV to ensure mobile compatibility.');
             return;
@@ -135,8 +183,21 @@ const UploadForm = ({ onUploadSuccess }) => {
             setError('Video too large (Max 5GB).');
             return;
         }
+
         setVideoFile(file);
         setStep(2); 
+
+        // --- NEW: Generate Thumbnail Automatically ---
+        setIsGeneratingThumb(true);
+        try {
+            const autoThumb = await generateVideoThumbnail(file);
+            setThumbnailFile(autoThumb);
+        } catch (err) {
+            console.warn("Could not auto-generate thumbnail:", err);
+            // Non-blocking error: user can still upload manually
+        } finally {
+            setIsGeneratingThumb(false);
+        }
     };
 
     const handleThumbnailChange = (e) => {
@@ -144,7 +205,6 @@ const UploadForm = ({ onUploadSuccess }) => {
         if (file) setThumbnailFile(file);
     };
 
-    // --- HELPER: DELETE FILE IF UPLOAD FAILS ---
     const deleteFileFromR2 = async (bucket, key) => {
         try {
             const command = new DeleteObjectCommand({
@@ -158,14 +218,10 @@ const UploadForm = ({ onUploadSuccess }) => {
         }
     };
 
-    // --- GENERIC R2 UPLOAD FUNCTION ---
     const uploadToR2 = async (file, bucketName, domainUrl, uniqueFileId, isVideo = false) => {
-        // --- FIX IS HERE: Aggressively sanitize filename ---
-        // Replaces anything that is NOT a letter, number, dot, or hyphen with an underscore
         const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); 
         const fileName = `${uniqueFileId}_${cleanName}`;
         
-        // Save the key in case we need to delete it on error
         if (isVideo) uploadedFileKeyRef.current = fileName;
 
         const upload = new Upload({
@@ -176,12 +232,10 @@ const UploadForm = ({ onUploadSuccess }) => {
                 Body: file,
                 ContentType: file.type,
             },
-            // 5MB part size for better multipart handling
             partSize: 5 * 1024 * 1024, 
             leavePartsOnError: false, 
         });
 
-        // Store reference if it's the main video
         if (isVideo) currentUploadRef.current = upload;
 
         if (isVideo) {
@@ -193,24 +247,20 @@ const UploadForm = ({ onUploadSuccess }) => {
 
         await upload.done();
         
-        // Clear reference after success
         if (isVideo) currentUploadRef.current = null;
 
         const publicUrl = `${domainUrl}/${fileName}`;
         return { publicUrl, fileName };
     };
 
-    // --- CANCEL HANDLER ---
     const handleCancelUpload = async () => {
         if (currentUploadRef.current) {
             try {
-                // 1. Abort the upload stream
                 await currentUploadRef.current.abort();
                 setIsUploading(false);
                 setUploadProgress(0);
                 setError("Upload cancelled by user.");
                 
-                // 2. Double check cleanup (Library usually handles it, but safety first)
                 if (uploadedFileKeyRef.current) {
                     await deleteFileFromR2(process.env.REACT_APP_R2_TEMP_BUCKET_NAME, uploadedFileKeyRef.current);
                 }
@@ -230,25 +280,23 @@ const UploadForm = ({ onUploadSuccess }) => {
         setIsUploading(true);
         setError(null);
 
-        // Define these outside try block so catch block can access them
         const uniqueId = ID.unique();
         let r2FileKey = null;
 
         try {
-            
-            // 1. Upload Video to R2 (TEMP BUCKET)
+            // 1. Upload Video to R2
             const videoUploadResult = await uploadToR2(
                 videoFile, 
                 process.env.REACT_APP_R2_TEMP_BUCKET_NAME, 
                 process.env.REACT_APP_R2_PUBLIC_DOMAIN, 
                 uniqueId,
-                true // isVideo
+                true 
             );
             
             const videoUrl = videoUploadResult.publicUrl;
             r2FileKey = videoUploadResult.fileName;
 
-            // 2. Upload Thumbnail to R2 (MAIN BUCKET) - Optional
+            // 2. Upload Thumbnail to R2 (Auto-generated or Manual)
             let thumbnailUrlString = null;
             if (thumbnailFile) {
                 const { publicUrl } = await uploadToR2(
@@ -261,7 +309,7 @@ const UploadForm = ({ onUploadSuccess }) => {
                 thumbnailUrlString = publicUrl;
             }
 
-            // 3. Save Metadata to Appwrite Database
+            // 3. Save Metadata to Appwrite
             await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_VIDEOS,
@@ -273,8 +321,8 @@ const UploadForm = ({ onUploadSuccess }) => {
                     username: user.name,
                     category,
                     tags: tags.trim(),
-                    url_4k: videoUrl,       
-                    thumbnailUrl: thumbnailUrlString,
+                    video_url: videoUrl,
+                    thumbnail_url: thumbnailUrlString, 
                     adminStatus: 'pending',
                     compressionStatus: 'waiting',
                     sourceFileId: r2FileKey,
@@ -291,25 +339,14 @@ const UploadForm = ({ onUploadSuccess }) => {
 
         } catch (err) {
             console.error(err);
-            
-            // --- CLEANUP ON FAILURE ---
-            // If the error was NOT a user cancellation (AbortError), execute cleanup
             if (err.name !== 'AbortError') {
                 setError(`Upload Failed: ${err.message}`);
-                
-                // If we have a file key, DELETE IT from R2 so we don't pay for failed uploads
                 if (uploadedFileKeyRef.current) {
-                    console.log("Upload failed, deleting partial file...");
                     await deleteFileFromR2(process.env.REACT_APP_R2_TEMP_BUCKET_NAME, uploadedFileKeyRef.current);
                 }
-            } else {
-                console.log("Upload aborted successfully.");
             }
         } finally {
-            if (!currentUploadRef.current) {
-                // Only turn off loading if we aren't still aborting
-                setIsUploading(false);
-            }
+            if (!currentUploadRef.current) setIsUploading(false);
         }
     };
 
@@ -333,7 +370,6 @@ const UploadForm = ({ onUploadSuccess }) => {
                         {error && <div className="mb-4"><Alert type="error" message={error} /></div>}
                         {success && <div className="mb-4"><Alert type="success" message={success} /></div>}
 
-                        {/* Progress Bar with Cancel Button */}
                         {isUploading && (
                             <div className="mb-6 p-4 bg-blue-50/50 border border-blue-200/50 rounded-md dark:bg-blue-900/20">
                                 <div className="flex justify-between mb-1">
@@ -343,14 +379,7 @@ const UploadForm = ({ onUploadSuccess }) => {
                                 <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-3">
                                     <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                                 </div>
-                                {/* CANCEL BUTTON */}
-                                <button 
-                                    type="button" 
-                                    onClick={handleCancelUpload}
-                                    className="text-xs text-red-600 hover:text-red-800 font-medium underline"
-                                >
-                                    Cancel Upload
-                                </button>
+                                <button type="button" onClick={handleCancelUpload} className="text-xs text-red-600 hover:text-red-800 font-medium underline">Cancel Upload</button>
                             </div>
                         )}
 
@@ -359,8 +388,21 @@ const UploadForm = ({ onUploadSuccess }) => {
                         <FormTextarea id="description" label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormFileInput id="thumbnailFile" label="Thumbnail" onChange={handleThumbnailChange} accept={ALLOWED_THUMB_TYPES.join(',')} file={thumbnailFile} clearFile={() => setThumbnailFile(null)} />
-                            {thumbnailPreview && <img src={thumbnailPreview} alt="Preview" className="h-32 rounded-md object-cover border border-gray-300" />}
+                            <FormFileInput id="thumbnailFile" label="Thumbnail" onChange={handleThumbnailChange} accept={['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].join(',')} file={thumbnailFile} clearFile={() => setThumbnailFile(null)} />
+                            
+                            {/* UPDATED: Loading State or Preview */}
+                            <div className="h-32 w-full border border-gray-300/50 rounded-md bg-white/50 dark:bg-gray-700/50 flex items-center justify-center overflow-hidden">
+                                {isGeneratingThumb ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                        <span className="text-xs text-gray-500">Auto-generating cover...</span>
+                                    </div>
+                                ) : thumbnailPreview ? (
+                                    <img src={thumbnailPreview} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-xs text-gray-400">No thumbnail selected</span>
+                                )}
+                            </div>
                         </div>
 
                         <FormSelect id="category" label="Category" value={category} onChange={(e) => setCategory(e.target.value)} required={true}>

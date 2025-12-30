@@ -7,12 +7,15 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import VideoCard from './VideoCard';
 
-// --- (LOGIC UNCHANGED) ---
 const VIDEOS_PER_PAGE = 12;
 
 const fetchVideos = async ({ pageParam = 0, queryKey }) => {
     const [, searchTerm, category] = queryKey;
     let queries = [];
+    
+    // --- (FIX) Always filter for approved videos ---
+    queries.push(Query.equal('adminStatus', 'approved'));
+
     let videoIds = null;
 
     if (searchTerm) {
@@ -75,11 +78,9 @@ const Feed = ({ searchTerm, category }) => {
             fetchNextPage();
         }
     }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
-    // --- (END LOGIC) ---
 
     if (status === 'loading') {
         return (
-             // --- (FIX) Removed solid background ---
              <div className="flex justify-center items-center h-64">
                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
              </div>
@@ -87,7 +88,6 @@ const Feed = ({ searchTerm, category }) => {
     }
 
     if (status === 'error') {
-        // --- (FIX) Made this a glass panel ---
         return (
             <div className="glass-panel p-6 text-center text-red-500">
                 Error: {error.message}
@@ -101,7 +101,6 @@ const Feed = ({ searchTerm, category }) => {
         <>
             <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {allVideos.length === 0 && !isFetching && (
-                    // --- (FIX) Made this a glass panel ---
                     <div className="glass-panel col-span-full py-8 text-center text-lg text-gray-600 dark:text-gray-200">
                         {searchTerm ? `No results for "${searchTerm}"` : "No videos yet."}
                     </div>
@@ -109,7 +108,6 @@ const Feed = ({ searchTerm, category }) => {
 
                 {data && data.pages.map((page, i) => (
                     <React.Fragment key={i}>
-                        {/* VideoCard is already a glass panel */}
                         {page.map(video => <VideoCard key={video.$id} video={video} />)}
                     </React.Fragment>
                 ))}

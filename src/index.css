@@ -8,13 +8,11 @@
   }
 }
 
-/* --- (FIX) THIS IS THE CORRECTED STYLE --- */
 @layer components {
   .glass-panel {
-    /* Light Mode: still white and semi-transparent 
-      Dark Mode: A medium-light gray (gray-600) and only 30% opaque.
-      This will make it look like "smoked glass" against your dark logo.
+    /* REMOVED: backdrop-blur-lg
+       Kept: bg-white/70 (opacity) so text is readable, but background is sharp.
     */
-    @apply bg-white/70 backdrop-blur-lg dark:bg-gray-600/30 border border-white/20 dark:border-white/10 rounded-xl shadow-lg;
+    @apply bg-white/70 dark:bg-gray-600/30 border border-white/20 dark:border-white/10 rounded-xl shadow-lg;
   }
 }

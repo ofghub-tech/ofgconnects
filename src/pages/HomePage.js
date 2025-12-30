@@ -20,6 +20,7 @@ const HomePage = () => {
         threshold: 0.5,
     });
 
+    // Fetch Main Feed (Approved Videos ONLY, NO Shorts)
     const fetchVideos = async (isLoadMore = false) => {
         if (isLoadMore) {
             setLoadingMore(true);
@@ -29,7 +30,13 @@ const HomePage = () => {
 
         try {
             let queries = [
+                // 1. Must be approved
+                Query.equal('adminStatus', 'approved'),
+                // 2. Must NOT be a short (Shorts have their own page)
+                Query.notEqual('category', 'shorts'), 
+                // 3. Sort by newest
                 Query.orderDesc('$createdAt'),
+                // 4. Limit per page
                 Query.limit(ITEMS_PER_PAGE)
             ];
 
@@ -68,7 +75,7 @@ const HomePage = () => {
         fetchVideos(false);
     }, []);
 
-    // --- 3. INFINITE SCROLL TRIGGER ---
+    // Infinite scroll trigger
     useEffect(() => {
         if (inView && hasMore && !loading && !loadingMore) {
             fetchVideos(true);
@@ -76,7 +83,6 @@ const HomePage = () => {
     }, [inView, hasMore, loading, loadingMore]);
 
     return (
-        // --- MODIFIED: Removed bg-gray-100 dark:bg-gray-900 ---
         <div className="p-4 sm:p-6 lg:p-8 min-h-screen transition-colors duration-200">
             <div className="max-w-7xl mx-auto">
 
@@ -106,7 +112,6 @@ const HomePage = () => {
                             </p>
                         )}
 
-                        {/* --- 4. INVISIBLE TRIGGER ELEMENT --- */}
                         {hasMore && videos.length > 0 && (
                             <div ref={ref} className="flex justify-center mt-10 py-4">
                                 {loadingMore ? (

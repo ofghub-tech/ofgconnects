@@ -1,105 +1,142 @@
-// src/components/Sidebar.js
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { 
+    HomeIcon, FireIcon, MusicalNoteIcon, UserGroupIcon, 
+    ClockIcon, HandThumbUpIcon, UserIcon, Cog6ToothIcon, 
+    ArrowLeftOnRectangleIcon 
+} from '@heroicons/react/24/outline';
+import { 
+    HomeIcon as HomeIconSolid, FireIcon as FireIconSolid, 
+    MusicalNoteIcon as MusicalNoteIconSolid, UserGroupIcon as UserGroupIconSolid,
+    ClockIcon as ClockIconSolid, HandThumbUpIcon as HandThumbUpIconSolid, 
+    UserIcon as UserIconSolid, Cog6ToothIcon as Cog6ToothIconSolid 
+} from '@heroicons/react/24/solid';
 
-// --- (Icons) ---
-const IconWrapper = (props) => (
-    <svg {...props} className={`h-6 w-6 shrink-0 ${props.className || ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {props.children}
-    </svg>
-);
-const MenuIcon = (props) => (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
-);
-const HomeIcon = (props) => <IconWrapper {...props}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></IconWrapper>;
-const UserIcon = (props) => <IconWrapper {...props}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></IconWrapper>;
-const UsersIcon = (props) => <IconWrapper {...props}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></IconWrapper>;
-const VideoIcon = (props) => <IconWrapper {...props}><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></IconWrapper>;
-const MusicIcon = (props) => <IconWrapper {...props}><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></IconWrapper>;
-const SmileIcon = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></IconWrapper>;
-const HistoryIcon = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></IconWrapper>;
-const BookmarkIcon = (props) => <IconWrapper {...props}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></IconWrapper>;
-const ThumbsUpIcon = (props) => <IconWrapper {...props}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></IconWrapper>;
-// --- (End Icons) ---
+const Sidebar = () => {
+    const [isHovered, setIsHovered] = useState(false);
+    const { logout, user } = useAuth();
+    const location = useLocation();
 
+    // Helper to determine active state
+    const isActive = (path) => location.pathname === path;
 
-// --- NavLink Wrapper Component ---
-const SidebarLink = ({ to, icon, label, isSidebarOpen }) => {
-    
-    const getNavLinkClass = ({ isActive }) => {
-        let baseClasses = "flex items-center rounded-lg mx-3 px-3 py-3 transition-colors duration-200";
-        let openClasses = "gap-6";
-        let closedClasses = "justify-center";
+    const NavItem = ({ to, icon: Icon, activeIcon: ActiveIcon, label, onClick }) => {
+        const active = isActive(to);
+        const IconToRender = active ? ActiveIcon : Icon;
 
-        // --- MODIFIED FOR GLASS UI ---
-        let activeClass = isActive 
-            ? "bg-gray-200/70 font-medium text-gray-900 dark:bg-gray-700/70 dark:text-white" 
-            : "text-gray-700 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50";
+        return (
+            <NavLink
+                to={to}
+                onClick={onClick}
+                className={`
+                    relative flex items-center h-12 my-1 mx-3 rounded-full transition-all duration-300 group
+                    ${active ? 'text-white' : 'text-gray-400 hover:text-gray-100'}
+                `}
+            >
+                {/* GLOW EFFECT (Only for active item) */}
+                {active && (
+                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-50 transition-opacity" />
+                )}
 
-        return `${baseClasses} ${isSidebarOpen ? openClasses : closedClasses} ${activeClass}`;
+                {/* Icon Container */}
+                <div className={`
+                    relative z-10 flex items-center justify-center min-w-[3rem] h-12 w-12 rounded-full transition-all duration-300
+                    ${active ? 'text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'group-hover:bg-white/10'}
+                `}>
+                    <IconToRender className={`w-6 h-6 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-105'}`} />
+                </div>
+
+                {/* Text Label */}
+                <span 
+                    className={`
+                        z-10 whitespace-nowrap overflow-hidden transition-all duration-300 ease-out font-medium tracking-wide
+                        ${isHovered ? 'w-40 opacity-100 pl-2' : 'w-0 opacity-0 pl-0'}
+                    `}
+                >
+                    {label}
+                </span>
+
+                {/* Active Dot Indicator */}
+                {active && isHovered && (
+                    <div className="absolute right-4 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]" />
+                )}
+            </NavLink>
+        );
     };
 
     return (
-        <NavLink to={to} className={getNavLinkClass}>
-            {icon}
-            <span className={`whitespace-nowrap transition-opacity ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
-                {label}
-            </span>
-        </NavLink>
-    );
-};
+        <aside 
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`
+                fixed left-0 top-0 h-full z-50 pt-20 pb-6 transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]
+                flex flex-col justify-between overflow-hidden
+                
+                /* --- MODIFIED GRADIENT (Left Black -> Right Transparent) --- */
+                ${isHovered 
+                    /* from-black: Solid black on the left
+                       via-black/90: Stays mostly dark through the middle (so text is readable)
+                       to-transparent: Fades out completely on the right edge
+                    */
+                    ? 'w-64 bg-gradient-to-r from-black from-40% via-black/90 to-transparent backdrop-blur-sm' 
+                    : 'w-20 bg-transparent'
+                } 
+            `}
+        >
+            {/* Navigation Items */}
+            <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide space-y-2 mt-4">
+                
+                <NavItem to="/" icon={HomeIcon} activeIcon={HomeIconSolid} label="Home" />
+                <NavItem to="/shorts" icon={FireIcon} activeIcon={FireIconSolid} label="Shorts" />
+                <NavItem to="/songs" icon={MusicalNoteIcon} activeIcon={MusicalNoteIconSolid} label="Music" />
+                <NavItem to="/kids" icon={UserGroupIcon} activeIcon={UserGroupIconSolid} label="Kids" />
+                
+                {/* Separator */}
+                <div className={`my-4 mx-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
 
-// --- Section Title Component ---
-const SectionTitle = ({ label, isSidebarOpen }) => (
-    <h3 className={`px-6 py-2 text-xs font-medium uppercase text-gray-500 transition-all dark:text-gray-400 ${!isSidebarOpen ? 'text-center text-[0px] before:content-["..."] before:text-xs' : ''}`}>
-        {isSidebarOpen ? label : ''}
-    </h3>
-);
+                <NavItem to="/myspace" icon={UserIcon} activeIcon={UserIconSolid} label="My Channel" />
+                <NavItem to="/history" icon={ClockIcon} activeIcon={ClockIconSolid} label="History" />
+                <NavItem to="/liked" icon={HandThumbUpIcon} activeIcon={HandThumbUpIconSolid} label="Liked Videos" />
+                
+                <div className={`my-4 mx-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
 
-// --- Sidebar Component ---
-const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
-    
-    const sidebarWidth = isSidebarOpen ? 'w-60' : 'w-20';
-
-    return (
-        // --- (MODIFIED FOR GLASS UI) ---
-        // Replaced all styles with .glass-panel
-        <aside className={`glass-panel h-full flex-shrink-0 overflow-y-auto overflow-x-hidden p-0 transition-all duration-300 rounded-none border-r border-l-0 border-t-0 border-b-0 ${sidebarWidth}`}>
-            
-            <div className={`flex h-16 items-center ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
-                <button 
-                    onClick={toggleSidebar} 
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:bg-gray-800/50"
-                >
-                    <MenuIcon className="h-6 w-6" />
-                </button>
+                <NavItem to="/settings" icon={Cog6ToothIcon} activeIcon={Cog6ToothIconSolid} label="Settings" />
             </div>
 
-            <nav className="flex flex-col gap-2 pt-2">
-                
-                <div className="flex flex-col gap-1">
-                    <SectionTitle label="Explore" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/home" icon={<HomeIcon />} label="Home" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/songs" icon={<MusicIcon />} label="Songs" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/shorts" icon={<VideoIcon />} label="Shorts" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/kids" icon={<SmileIcon />} label="Kids" isSidebarOpen={isSidebarOpen} />
-                </div>
-
-                {/* --- SEPARATOR (MODIFIED) --- */}
-                <hr className={`my-2 mx-6 border-white/20 transition-all dark:border-gray-700/50 ${!isSidebarOpen ? 'mx-3' : ''}`} />
-
-                <div className="flex flex-col gap-1">
-                    <SectionTitle label="Mine" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/myspace" icon={<UserIcon />} label="My Space" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/following" icon={<UsersIcon />} label="Following" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/history" icon={<HistoryIcon />} label="History" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/watch-later" icon={<BookmarkIcon />} label="Watch Later" isSidebarOpen={isSidebarOpen} />
-                    <SidebarLink to="/liked-videos" icon={<ThumbsUpIcon />} label="Liked Videos" isSidebarOpen={isSidebarOpen} />
-                </div>
-                
-            </nav>
+            {/* Footer / Logout */}
+            <div className="relative z-10 px-2 mt-auto">
+                {user ? (
+                    <button
+                        onClick={logout}
+                        className={`
+                            relative flex items-center h-12 w-full mx-1 rounded-full transition-all duration-300 group
+                            text-red-400 hover:text-red-300 hover:bg-red-500/10
+                        `}
+                    >
+                        <div className="flex items-center justify-center min-w-[3rem] h-12 w-12">
+                            <ArrowLeftOnRectangleIcon className="w-6 h-6 transition-transform group-hover:-translate-x-1" />
+                        </div>
+                        <span 
+                            className={`
+                                whitespace-nowrap overflow-hidden transition-all duration-300 font-medium
+                                ${isHovered ? 'w-40 opacity-100 pl-2' : 'w-0 opacity-0 pl-0'}
+                            `}
+                        >
+                            Log Out
+                        </span>
+                    </button>
+                ) : (
+                    <NavLink to="/login" className="relative flex items-center h-12 w-full mx-1 rounded-full text-blue-400 hover:bg-blue-500/10 transition-all">
+                        <div className="flex items-center justify-center min-w-[3rem] h-12 w-12">
+                            <UserIcon className="w-6 h-6" />
+                        </div>
+                        <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 font-medium ${isHovered ? 'w-40 opacity-100 pl-2' : 'w-0 opacity-0 pl-0'}`}>
+                            Sign In
+                        </span>
+                    </NavLink>
+                )}
+            </div>
         </aside>
     );
 };

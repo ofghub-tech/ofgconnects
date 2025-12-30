@@ -1,98 +1,92 @@
 // src/components/VideoCard.js
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // To get user avatar initial
-import { databases, BUCKET_ID_THUMBNAILS, storage } from '../appwriteConfig'; // Assuming you might need this later
-
-// Helper function to get the correct avatar initial
-const getChannelInitial = (channelName, userEmail) => {
-    if (channelName) return channelName.charAt(0).toUpperCase();
-    if (userEmail) return userEmail.charAt(0).toUpperCase();
-    return '?';
-};
-
-// Function to format time (e.g., 2 days ago)
-const timeSince = (date) => {
-    if (!date) return "someday";
-    
-    let seconds;
-    if (typeof date === 'string') {
-        seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    } else if (typeof date === 'number') {
-        seconds = Math.floor((new Date() - new Date(date * 1000)) / 1000);
-    } else {
-        return "invalid date";
-    }
-
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return Math.floor(seconds) + " seconds ago";
-};
-
-// Function to format view count
-const formatViews = (views) => {
-    if (!views) return '0 views';
-    if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M views';
-    if (views >= 1000) return (views / 1000).toFixed(1) + 'K views';
-    return views + ' views';
-};
-
+import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const VideoCard = ({ video }) => {
-    const { user } = useAuth(); 
+    const navigate = useNavigate();
+    const videoRef = useRef(null);
+    const [isHovered, setIsHovered] = useState(false);
 
-    if (!video) {
-        return null;
-    }
+    // MAPPING: Align with your Flutter 'Video.fromAppwrite' logic
+    // Flutter: videoUrl: doc.data['video_url']
+    // Flutter: thumbnailUrl: doc.data['thumbnailUrl']
+    const sourceUrl = video.video_url || video.videoUrl; 
+    const thumbUrl = video.thumbnailUrl || video.thumbnail_url;
 
-    const thumbnailUrl = video.thumbnailUrl || 'https://via.placeholder.com/400x225.png?text=No+Thumbnail';
-    
-    const channelInitial = getChannelInitial(video.username, user?.email);
+    const handleMouseEnter = () => {
+        setIsHovered(true);
+        if (videoRef.current && sourceUrl) {
+            videoRef.current.play().catch(e => { /* Ignore autoplay errors */ });
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setIsHovered(false);
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime = 0;
+        }
+    };
 
     return (
-        // --- MODIFIED: Applied .glass-panel ---
-        // We add .glass-panel and p-0 (so the panel's internal padding doesn't break our layout)
-        <div className="glass-panel flex flex-col overflow-hidden p-0 transition-transform duration-200 ease-in-out hover:-translate-y-1">
-            <Link to={`/watch/${video.$id}`}>
+        <div 
+            onClick={() => navigate(`/watch/${video.$id}`)}
+            className="glass-panel group cursor-pointer p-0 overflow-hidden flex flex-col"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
+            {/* Thumbnail / Video Preview Area */}
+            <div className="relative aspect-video bg-black overflow-hidden rounded-t-xl">
+                {/* 1. Thumbnail Image (Visible by default, hidden on hover if video plays) */}
                 <img 
-                    // --- MODIFIED: Rounded top corners to match the panel ---
-                    className="aspect-video w-full object-cover rounded-t-xl" 
-                    src={thumbnailUrl} 
-                    alt={video.title} 
+                    src={thumbUrl} 
+                    alt={video.title}
+                    className={`w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300 ${isHovered ? 'opacity-0' : 'opacity-100'}`}
+                    onError={(e) => { e.target.style.display = 'none'; }} // Hide if broken
                 />
-            </Link>
-            
-            <div className="flex gap-3 p-4">
-                {/* Channel Avatar */}
-                <div className="mt-1 flex-shrink-0">
-                    <Link to={`/channel/${video.uploaderId}`}> 
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white">
-                            {channelInitial}
-                        </div>
-                    </Link>
-                </div>
                 
-                <div className="flex-1">
-                    <Link to={`/watch/${video.$id}`}>
-                        <h3 className="text-md font-medium text-gray-900 line-clamp-2 dark:text-gray-100">
-                            {video.title || 'Untitled Video'}
-                        </h3>
-                    </Link>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {video.username || 'Unknown Channel'}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <span>{formatViews(video.view_count || 0)}</span>
-                        <span>•</span>
-                        <span>{timeSince(video.$createdAt)}</span>
+                {/* 2. Video Preview (Background) */}
+                {sourceUrl && (
+                    <video
+                        ref={videoRef}
+                        src={sourceUrl}
+                        muted
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover absolute inset-0 z-0"
+                    />
+                )}
+                
+                {/* Duration Badge (Optional) */}
+                {video.duration && (
+                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1 rounded z-20">
+                        {video.duration}
+                    </div>
+                )}
+            </div>
+
+            {/* Info Section */}
+            <div className="p-3 flex gap-3">
+                <div className="flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                        <img 
+                            src={`https://cloud.appwrite.io/v1/avatars/initials?name=${video.username || 'U'}&width=40&height=40`}
+                            alt={video.username}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                        {video.title}
+                    </h3>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                        <p>{video.username || "Unknown"}</p>
+                        <div className="flex items-center mt-0.5">
+                            <span>{video.view_count || video.views || 0} views</span>
+                            <span className="mx-1">•</span>
+                            <span>{new Date(video.$createdAt).toLocaleDateString()}</span>
+                        </div>
                     </div>
                 </div>
             </div>

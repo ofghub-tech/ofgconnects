@@ -10,7 +10,6 @@ import Modal from '../components/Modal';
 import { useInView } from 'react-intersection-observer';
 
 const MySpacePage = () => {
-    // --- (LOGIC UNCHANGED) ---
     const { user } = useAuth();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -26,11 +25,8 @@ const MySpacePage = () => {
     const fetchUserVideos = async (isLoadMore = false) => {
         if (!user) return;
 
-        if (isLoadMore) {
-            setLoadingMore(true);
-        } else {
-            setLoading(true);
-        }
+        if (isLoadMore) setLoadingMore(true);
+        else setLoading(true);
 
         try {
             let queries = [
@@ -83,10 +79,8 @@ const MySpacePage = () => {
         setHasMore(true);
         fetchUserVideos(false);
     };
-    // --- (END LOGIC) ---
 
     return (
-        // --- (FIX 1) Removed solid bg-gray-50 dark:bg-gray-900 ---
         <div className="p-4 sm:p-6 lg:p-8 min-h-full">
             <div className="max-w-4xl mx-auto">
                 
@@ -100,7 +94,6 @@ const MySpacePage = () => {
                     </button>
                 </div>
 
-                {/* Modal is already a glass panel from our earlier change */}
                 {showUploadModal && (
                     <Modal onClose={() => setShowUploadModal(false)}>
                         <UploadForm onUploadSuccess={handleUploadComplete} />
@@ -117,21 +110,18 @@ const MySpacePage = () => {
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {videos.length === 0 ? (
-                                // --- (FIX 2) Made this a glass panel ---
                                 <div className="glass-panel text-gray-500 col-span-full dark:text-gray-400 text-center p-10">
                                     You haven't uploaded any videos yet.
                                 </div>
                             ) : (
                                 videos.map((video) => (
                                     <Link to={`/watch/${video.$id}`} key={video.$id} className="video-card-link group">
-                                        {/* --- (FIX 3) Replaced solid card with .glass-panel --- */}
                                         <div className="glass-panel p-0 overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                                            {/* --- (FIX 4) Removed solid bg from wrapper --- */}
-                                            <div className="w-full h-32 overflow-hidden">
+                                            <div className="w-full h-32 overflow-hidden bg-black">
                                                 <img
-                                                    src={video.thumbnailUrl}
+                                                    // UPDATED
+                                                    src={video.thumbnail_url || video.thumbnailUrl}
                                                     alt={video.title}
-                                                    // --- (FIX 5) Rounded top corners ---
                                                     className="w-full h-full object-cover rounded-t-xl"
                                                 />
                                             </div>
@@ -139,6 +129,16 @@ const MySpacePage = () => {
                                                 <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
                                                     {video.title}
                                                 </h3>
+                                                {/* Optional: Show status badge */}
+                                                <div className="mt-2 text-xs">
+                                                    <span className={`px-2 py-1 rounded-full ${
+                                                        video.adminStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                                                        video.adminStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-yellow-100 text-yellow-800'
+                                                    }`}>
+                                                        {video.adminStatus || 'pending'}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </Link>
@@ -157,12 +157,6 @@ const MySpacePage = () => {
                                     <div className="h-10 w-full" />
                                 )}
                             </div>
-                        )}
-                        
-                        {!hasMore && videos.length > 0 && (
-                             <p className="text-center text-gray-500 dark:text-gray-400 mt-10 pb-10">
-                                 End of your videos.
-                            </p>
                         )}
                     </>
                 )}
