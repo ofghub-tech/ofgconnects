@@ -1,263 +1,207 @@
-// src/pages/SettingsPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import Cropper from 'react-easy-crop'; 
+import Modal from '../components/Modal';
+import Avatar from '../components/Avatar'; 
+import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'; // Using HeroIcon for Logout
 
-// --- (FIX 1) Made input semi-transparent ---
-const SettingsInput = ({ label, id, ...props }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {label}
-        </label>
-        <input
-            id={id}
-            className="mt-1 block w-full rounded-md border-gray-300/50 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-white/50 dark:bg-gray-700/50 dark:border-gray-600/50 dark:text-gray-200 dark:placeholder-gray-400 disabled:bg-gray-100/50 dark:disabled:bg-gray-700/50"
-            {...props}
-        />
-    </div>
-);
+// --- CROP UTILS ---
+const getCroppedImg = async (imageSrc, pixelCrop) => {
+    const image = new Image();
+    image.src = imageSrc;
+    await new Promise((resolve) => { image.onload = resolve; });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
+    return new Promise((resolve) => { canvas.toBlob((blob) => resolve(blob), 'image/jpeg'); });
+};
 
-const SettingsButton = ({ children, isLoading, ...props }) => (
-    <button
-        className="flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400"
-        disabled={isLoading}
-        {...props}
-    >
-        {isLoading ? 'Saving...' : children}
-    </button>
-);
-
-// --- (FIX 2) Made message boxes semi-transparent ---
-const Message = ({ text, type }) => {
-    const baseClasses = "text-sm font-medium p-3 rounded-md my-2";
-    const typeClasses = {
-        success: "bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200",
-        error: "bg-red-100/80 text-red-800 dark:bg-red-900/80 dark:text-red-200"
+// --- SUB-COMPONENTS ---
+const SettingsButton = ({ children, isLoading, variant = 'primary', ...props }) => {
+    const baseStyle = "flex items-center justify-center rounded-md py-2.5 px-4 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-all duration-200";
+    const variants = {
+        primary: "border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+        secondary: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 focus:ring-gray-500",
+        danger: "border border-red-300 bg-white text-red-700 hover:bg-red-50 dark:bg-transparent dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 focus:ring-red-500"
     };
     return (
-        <div className={`${baseClasses} ${typeClasses[type] || 'bg-gray-100/80 text-gray-800'}`}>
-            {text}
-        </div>
+        <button className={`${baseStyle} ${variants[variant]}`} disabled={isLoading} {...props}>
+            {isLoading ? 'Processing...' : children}
+        </button>
     );
 };
-// --- End UI Components ---
-
-// --- (ICONS UNCHANGED) ---
-const SunIcon = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-6.364-.386l1.591-1.591M3 12h2.25m.386-6.364l1.591 1.591M12 12a2.25 2.25 0 00-2.25 2.25v.01c0 .317.031.63.09 1.15a3.744 3.744 0 01-1.31 3.298 3.744 3.744 0 01-4.903-1.085 3.744 3.744 0 01-1.085-4.903A3.745 3.745 0 016.6 6.6a3.745 3.745 0 013.298-1.31c.52.059 1.033.09 1.15.09v.01A2.25 2.25 0 0012 3z" />
-    </svg>
-);
-const MoonIcon = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-    </svg>
-);
-const ComputerIcon = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-1.621-.621A3 3 0 0115 18.257V17.25m-6 0V3m6 0v14.25m-6 0h6m-7.5-3h9M3 12h18M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
-    </svg>
-);
-// --- END ICONS ---
-
-// --- (FIX 3) Made theme option semi-transparent ---
-const ThemeOption = ({ value, label, icon, currentTheme, setTheme }) => {
-    const isChecked = currentTheme === value;
-    return (
-        <label className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 transition-all ${isChecked ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-900/50' : 'border-gray-300/50 dark:border-gray-600/50 hover:bg-gray-50/50 dark:hover:bg-gray-700/50'}`}>
-            <input
-                type="radio"
-                name="theme"
-                value={value}
-                checked={isChecked}
-                onChange={(e) => setTheme(e.target.value)}
-                className="sr-only" // Hide the actual radio button
-            />
-            {icon}
-            <span className="text-sm font-medium">{label}</span>
-        </label>
-    );
-};
-// --- END NEW COMPONENT ---
-
 
 const SettingsPage = () => {
-    // --- (LOGIC UNCHANGED) ---
-    const { user, updateUserName, updateUserPassword, theme, setTheme } = useAuth(); 
+    const { user, uploadProfileImage, deleteAccount, logoutUser } = useAuth(); 
+    const navigate = useNavigate();
 
-    const [name, setName] = useState(user?.name || '');
-    const [oldPassword, setOldPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    // Image State
+    const [selectedImg, setSelectedImg] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [imgUploading, setImgUploading] = useState(false);
+    const [showCropModal, setShowCropModal] = useState(false);
 
-    const [nameLoading, setNameLoading] = useState(false);
-    const [passLoading, setPassLoading] = useState(false);
-    const [nameMessage, setNameMessage] = useState(null); 
-    const [passMessage, setPassMessage] = useState(null);
+    // Delete Account State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteInput, setDeleteInput] = useState('');
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
-    useEffect(() => {
-        if (user?.name) {
-            setName(user.name);
+    // --- AVATAR HANDLERS ---
+    const onFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => { setSelectedImg(reader.result); setShowCropModal(true); });
+            reader.readAsDataURL(e.target.files[0]);
         }
-    }, [user]);
-
-    const handleUpdateName = async (e) => {
-        e.preventDefault();
-        setNameLoading(true);
-        setNameMessage(null);
+    };
+    const onCropComplete = useCallback((_, pixels) => setCroppedAreaPixels(pixels), []);
+    
+    const handleUploadAvatar = async () => {
         try {
-            await updateUserName(name);
-            setNameMessage({ type: 'success', text: 'Name updated successfully!' });
-        } catch (error) {
-            setNameMessage({ type: 'error', text: error.message || 'Failed to update name.' });
-        }
-        setNameLoading(false);
+            setImgUploading(true);
+            const croppedBlob = await getCroppedImg(selectedImg, croppedAreaPixels);
+            const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+            await uploadProfileImage(file);
+            setShowCropModal(false); setSelectedImg(null);
+        } catch (error) { alert(error.message); } finally { setImgUploading(false); }
     };
 
-    const handleUpdatePassword = async (e) => {
-        e.preventDefault();
-        setPassLoading(true);
-        setPassMessage(null);
-
-        if (newPassword !== confirmPassword) {
-            setPassMessage({ type: 'error', text: 'New passwords do not match.' });
-            setPassLoading(false);
-            return;
-        }
-
+    // --- LOGOUT HANDLER ---
+    const handleLogout = async () => {
         try {
-            await updateUserPassword(newPassword, oldPassword);
-            setPassMessage({ type: 'success', text: 'Password updated successfully!' });
-            setOldPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
+            await logoutUser();
+            navigate('/'); // Send back to Login/Landing page
         } catch (error) {
-            setPassMessage({ type: 'error', text: error.message || 'Failed to update password. Check your old password.' });
+            console.error("Logout failed", error);
         }
-        setPassLoading(false);
     };
-    // --- (END LOGIC) ---
 
+    // --- DELETE ACCOUNT HANDLER ---
+    const handleDeleteAccount = async () => {
+        if (deleteInput !== 'DELETE') return;
+        setDeleteLoading(true);
+        try {
+            await deleteAccount();
+            navigate('/');
+        } catch (error) {
+            alert("Failed to delete account: " + error.message);
+        }
+        setDeleteLoading(false);
+    };
 
     return (
-        // --- (FIX 4) Removed solid background from main page wrapper ---
-        <div className="w-full p-4 py-8 sm:p-12">
-            <div className="mx-auto max-w-3xl space-y-8">
-                
-                <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    Account Settings
-                </h1>
+        <div className="w-full p-4 py-8 sm:p-12 min-h-screen">
+            <div className="mx-auto max-w-xl space-y-6">
+                <h1 className="mb-8 text-3xl font-bold text-gray-900 dark:text-gray-100 text-center">Settings</h1>
 
-                {/* --- (FIX 5) Applied .glass-panel class --- */}
-                <div className="glass-panel overflow-hidden p-0">
-                    <div className="p-8">
-                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Appearance</h2>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Choose how OfgConnects looks to you.</p>
+                {/* --- 1. PROFILE PICTURE --- */}
+                <div className="glass-panel p-8 text-center relative overflow-hidden shadow-sm">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Profile Picture</h2>
+                    
+                    <div className="relative inline-block group mx-auto">
+                        <Avatar 
+                            url={user?.prefs?.avatar} 
+                            name={user?.name} 
+                            size="xl" // 120px
+                            className="ring-4 ring-blue-500/20 shadow-lg" 
+                        />
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity backdrop-blur-sm">
+                            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <input type="file" className="hidden" accept="image/*" onChange={onFileChange} />
+                        </label>
+                    </div>
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Click image to change</p>
+                </div>
 
-                        <div className="mt-6 flex flex-col gap-4 sm:flex-row">
-                            <ThemeOption
-                                value="light"
-                                label="Light"
-                                icon={<SunIcon className="h-8 w-8 text-gray-700 dark:text-gray-300" />}
-                                currentTheme={theme}
-                                setTheme={setTheme}
-                            />
-                            <ThemeOption
-                                value="dark"
-                                label="Dark"
-                                icon={<MoonIcon className="h-8 w-8 text-gray-700 dark:text-gray-300" />}
-                                currentTheme={theme}
-                                setTheme={setTheme}
-                            />
-                            <ThemeOption
-                                value="system"
-                                label="System"
-                                icon={<ComputerIcon className="h-8 w-8 text-gray-700 dark:text-gray-300" />}
-                                currentTheme={theme}
-                                setTheme={setTheme}
-                            />
+                {/* --- 2. SESSION (LOGOUT) --- */}
+                <div className="glass-panel p-6 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Session</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Log out of your account on this device.
+                        </p>
+                    </div>
+                    <SettingsButton variant="secondary" onClick={handleLogout} className="w-full sm:w-auto">
+                        <ArrowRightOnRectangleIcon className="w-5 h-5 mr-2" />
+                        Log Out
+                    </SettingsButton>
+                </div>
+
+                {/* --- 3. DANGER ZONE --- */}
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-900/50 dark:bg-red-950/10 shadow-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">Delete Account</h2>
+                            <p className="mt-1 text-sm text-red-600/80 dark:text-red-300/70 max-w-sm">
+                                Permanently remove your profile and content.
+                            </p>
                         </div>
+                        <SettingsButton variant="danger" onClick={() => setShowDeleteModal(true)} className="w-full sm:w-auto">
+                            Delete Account
+                        </SettingsButton>
                     </div>
                 </div>
-
-
-                {/* --- (FIX 6) Applied .glass-panel class --- */}
-                <div className="glass-panel overflow-hidden p-0">
-                    
-                    <form onSubmit={handleUpdateName} className="space-y-6 p-8">
-                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Profile Information</h2>
-
-                        {nameMessage && <Message type={nameMessage.type} text={nameMessage.text} />}
-
-                        <SettingsInput
-                            label="Email"
-                            id="email"
-                            type="email"
-                            value={user?.email || ''}
-                            disabled
-                            // Overriding base styles for disabled input
-                            className="mt-1 block w-full rounded-md border-gray-300/50 bg-gray-100/50 shadow-sm sm:text-sm dark:bg-gray-700/50 dark:text-gray-300/70 dark:border-gray-600/50"
-                        />
-
-                        <SettingsInput
-                            label="Full Name"
-                            id="name"
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                        />
-
-                        <div className="flex justify-end">
-                            <SettingsButton type="submit" isLoading={nameLoading}>
-                                Save Name
-                            </SettingsButton>
-                        </div>
-                    </form>
-
-                    {/* --- (FIX 7) Semi-transparent border --- */}
-                    <hr className="border-white/20 dark:border-gray-700/50" />
-
-                    <form onSubmit={handleUpdatePassword} className="space-y-6 p-8">
-                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Change Password</h2>
-
-                        {passMessage && <Message type={passMessage.type} text={passMessage.text} />}
-
-                        <SettingsInput
-                            label="Old Password"
-                            id="oldPassword"
-                            type="password"
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                            required
-                        />
-
-                        <SettingsInput
-                            label="New Password"
-                            id="newPassword"
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                        />
-
-                        <SettingsInput
-                            label="Confirm New Password"
-                            id="confirmPassword"
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                        />
-
-                        <div className="flex justify-end">
-                            <SettingsButton type="submit" isLoading={passLoading}>
-                                Change Password
-                            </SettingsButton>
-                        </div>
-                    </form>
-
-                </div>
             </div>
+
+            {/* --- CROP MODAL --- */}
+            {showCropModal && (
+                <Modal onClose={() => setShowCropModal(false)}>
+                    <div className="p-4">
+                        <h3 className="text-lg font-medium text-center mb-4 text-gray-900 dark:text-gray-100">Adjust Picture</h3>
+                        <div className="h-64 w-full relative bg-black rounded-lg overflow-hidden">
+                            <Cropper image={selectedImg} crop={crop} zoom={zoom} aspect={1} onCropChange={setCrop} onCropComplete={onCropComplete} onZoomChange={setZoom} cropShape="round" />
+                        </div>
+                        <div className="mt-4 flex flex-col gap-4">
+                            <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(e.target.value)} className="w-full" />
+                            <div className="flex justify-end gap-3">
+                                <button onClick={() => setShowCropModal(false)} className="px-4 py-2 text-gray-500">Cancel</button>
+                                <button onClick={handleUploadAvatar} disabled={imgUploading} className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50">{imgUploading ? 'Saving...' : 'Set Picture'}</button>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* --- DELETE CONFIRMATION MODAL --- */}
+            {showDeleteModal && (
+                <Modal onClose={() => setShowDeleteModal(false)}>
+                    <div className="p-6 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                            <svg className="h-6 w-6 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-gray-100">Are you absolutely sure?</h3>
+                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            This action will permanently delete your account.
+                        </p>
+                        
+                        <div className="mt-4">
+                            <label className="block text-xs text-left text-gray-500 mb-1 ml-1">Type <span className="font-bold">DELETE</span> to confirm</label>
+                            <input 
+                                type="text" 
+                                className="w-full rounded-md border border-gray-300 p-2 text-center uppercase focus:border-red-500 focus:ring-red-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                                placeholder="DELETE"
+                                value={deleteInput}
+                                onChange={(e) => setDeleteInput(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="mt-6 flex justify-center gap-3">
+                            <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md dark:text-gray-300 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                            <button onClick={handleDeleteAccount} disabled={deleteInput !== 'DELETE' || deleteLoading} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-all">{deleteLoading ? 'Deleting...' : 'Confirm Delete'}</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 };

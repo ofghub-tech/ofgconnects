@@ -1,20 +1,25 @@
 // src/pages/MySpacePage.js
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { databases } from '../appwriteConfig';
-import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
+import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import { Link } from 'react-router-dom';
 import UploadForm from '../components/UploadForm';
 import Modal from '../components/Modal';
 import { useInView } from 'react-intersection-observer';
+import VideoCard from '../components/VideoCard'; 
+import Avatar from '../components/Avatar'; // <--- Import Avatar
 
 const MySpacePage = () => {
     const { user } = useAuth();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
+    
+    // TABS STATE
+    const [activeTab, setActiveTab] = useState('videos'); // 'videos', 'songs', 'shorts'
 
+    // PAGINATION
     const [loadingMore, setLoadingMore] = useState(false);
     const [lastId, setLastId] = useState(null);
     const [hasMore, setHasMore] = useState(true);
@@ -22,7 +27,7 @@ const MySpacePage = () => {
 
     const { ref, inView } = useInView({ threshold: 0.1 });
 
-    const fetchUserVideos = async (isLoadMore = false) => {
+    const fetchUserContent = async (isLoadMore = false) => {
         if (!user) return;
 
         if (isLoadMore) setLoadingMore(true);
@@ -35,15 +40,23 @@ const MySpacePage = () => {
                 Query.limit(ITEMS_PER_PAGE)
             ];
 
+            // --- FILTER LOGIC (Matches Mobile App) ---
+            if (activeTab === 'shorts') {
+                queries.push(Query.equal('category', 'shorts'));
+            } else if (activeTab === 'songs') {
+                queries.push(Query.equal('category', ['music', 'song', 'songs']));
+            } else {
+                // Videos tab: Exclude shorts and music
+                queries.push(Query.notEqual('category', 'shorts'));
+                queries.push(Query.notEqual('category', 'music'));
+                queries.push(Query.notEqual('category', 'song'));
+            }
+
             if (isLoadMore && lastId) {
                 queries.push(Query.cursorAfter(lastId));
             }
 
-            const response = await databases.listDocuments(
-                DATABASE_ID,
-                COLLECTION_ID_VIDEOS,
-                queries
-            );
+            const response = await databases.listDocuments(DATABASE_ID, COLLECTION_ID_VIDEOS, queries);
 
             if (isLoadMore) {
                 setVideos(prev => [...prev, ...response.documents]);
@@ -57,108 +70,136 @@ const MySpacePage = () => {
             }
 
         } catch (error) {
-            console.error('Failed to fetch user videos:', error);
+            console.error('Failed to fetch user content:', error);
         }
         setLoading(false);
         setLoadingMore(false);
     };
 
+    // Refetch when Tab or User changes
     useEffect(() => {
-        fetchUserVideos(false);
-    }, [user]);
+        setVideos([]);
+        setLastId(null);
+        setHasMore(true);
+        fetchUserContent(false);
+    }, [user, activeTab]);
 
     useEffect(() => {
         if (inView && hasMore && !loading && !loadingMore) {
-            fetchUserVideos(true);
+            fetchUserContent(true);
         }
     }, [inView, hasMore, loading, loadingMore]);
 
-    const handleUploadComplete = () => {
-        setShowUploadModal(false);
-        setLastId(null);
-        setHasMore(true);
-        fetchUserVideos(false);
-    };
-
     return (
         <div className="p-4 sm:p-6 lg:p-8 min-h-full">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Space</h1>
+                {/* --- HEADER WITH AVATAR --- */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                    <div className="flex items-center gap-4">
+                        {/* Avatar Component */}
+                        <Avatar 
+                            url={user?.prefs?.avatar} 
+                            name={user?.name} 
+                            size="lg" // 90px
+                            className="ring-4 ring-gray-800 dark:ring-gray-700 shadow-xl"
+                        />
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{user?.name}</h1>
+                            <p className="text-gray-500 text-sm font-medium">My Personal Space</p>
+                        </div>
+                    </div>
                     <button
                         onClick={() => setShowUploadModal(true)}
-                        className="py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+                        className="py-2.5 px-6 bg-blue-600 text-white font-semibold rounded-full shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"
                     >
-                        Upload Video
+                        Upload Content
                     </button>
                 </div>
 
-                {showUploadModal && (
-                    <Modal onClose={() => setShowUploadModal(false)}>
-                        <UploadForm onUploadSuccess={handleUploadComplete} />
-                    </Modal>
-                )}
+                {/* --- TABS --- */}
+                <div className="flex border-b border-gray-200 dark:border-gray-800 mb-8 overflow-x-auto">
+                    {['videos', 'songs', 'shorts'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`pb-4 px-6 text-sm font-bold uppercase tracking-wide transition-colors relative whitespace-nowrap ${
+                                activeTab === tab 
+                                ? 'text-blue-600 dark:text-blue-400' 
+                                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            {tab}
+                            {activeTab === tab && (
+                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full" />
+                            )}
+                        </button>
+                    ))}
+                </div>
 
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4 dark:text-gray-200">My Videos</h2>
-                
-                {loading ? (
-                    <div className="flex justify-center p-10">
+                {/* --- CONTENT GRID --- */}
+                {loading && !loadingMore ? (
+                    <div className="flex justify-center p-20">
                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className={`grid gap-6 ${activeTab === 'shorts' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                             {videos.length === 0 ? (
-                                <div className="glass-panel text-gray-500 col-span-full dark:text-gray-400 text-center p-10">
-                                    You haven't uploaded any videos yet.
+                                <div className="col-span-full py-20 text-center">
+                                    <p className="text-gray-500 dark:text-gray-400">No {activeTab} found.</p>
                                 </div>
                             ) : (
                                 videos.map((video) => (
-                                    <Link to={`/watch/${video.$id}`} key={video.$id} className="video-card-link group">
-                                        <div className="glass-panel p-0 overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                                            <div className="w-full h-32 overflow-hidden bg-black">
-                                                <img
-                                                    // UPDATED
-                                                    src={video.thumbnail_url || video.thumbnailUrl}
-                                                    alt={video.title}
-                                                    className="w-full h-full object-cover rounded-t-xl"
-                                                />
+                                    activeTab === 'shorts' ? (
+                                        // Shorts Card
+                                        <Link key={video.$id} to={`/shorts/watch/${video.$id}`} className="block group relative aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden shadow-lg border border-gray-800">
+                                            <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"/>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"/>
+                                            <div className="absolute bottom-3 left-3 right-3">
+                                                <p className="text-white text-sm font-bold truncate drop-shadow-md">{video.title}</p>
+                                                <p className="text-gray-300 text-xs truncate mt-1">{video.views || 0} views</p>
                                             </div>
-                                            <div className="p-4">
-                                                <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
-                                                    {video.title}
-                                                </h3>
-                                                {/* Optional: Show status badge */}
-                                                <div className="mt-2 text-xs">
-                                                    <span className={`px-2 py-1 rounded-full ${
-                                                        video.adminStatus === 'approved' ? 'bg-green-100 text-green-800' :
-                                                        video.adminStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                        'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                        {video.adminStatus || 'pending'}
-                                                    </span>
+                                            {/* Status Badge */}
+                                            {video.adminStatus !== 'approved' && (
+                                                <div className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase tracking-wider ${video.adminStatus === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'}`}>
+                                                    {video.adminStatus}
                                                 </div>
-                                            </div>
+                                            )}
+                                        </Link>
+                                    ) : (
+                                        // Standard Video Card
+                                        <div key={video.$id} className="relative group">
+                                            <VideoCard video={video} />
+                                            {/* Overlay status badge */}
+                                            {video.adminStatus !== 'approved' && (
+                                                <div className={`absolute top-2 left-2 z-10 px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm backdrop-blur-md ${video.adminStatus === 'rejected' ? 'bg-red-500/90' : 'bg-yellow-500/90'}`}>
+                                                    {video.adminStatus?.toUpperCase() || 'PENDING'}
+                                                </div>
+                                            )}
                                         </div>
-                                    </Link>
+                                    )
                                 ))
                             )}
                         </div>
 
                         {hasMore && videos.length > 0 && (
-                            <div ref={ref} className="flex justify-center mt-10 py-4">
-                                {loadingMore ? (
-                                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                                         <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                                         <span>Loading more...</span>
-                                     </div>
-                                ) : (
-                                    <div className="h-10 w-full" />
-                                )}
+                            <div ref={ref} className="flex justify-center mt-12 py-4">
+                                {loadingMore && <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>}
                             </div>
                         )}
                     </>
+                )}
+                
+                {showUploadModal && (
+                    <Modal onClose={() => setShowUploadModal(false)}>
+                        <UploadForm onUploadSuccess={() => {
+                            setShowUploadModal(false);
+                            setVideos([]); 
+                            setLastId(null);
+                            fetchUserContent(false);
+                        }} />
+                    </Modal>
                 )}
             </div>
         </div>
