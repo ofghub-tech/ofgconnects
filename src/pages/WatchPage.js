@@ -1,11 +1,11 @@
 // src/pages/WatchPage.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 import { useParams, Link } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import SuggestedVideos from '../components/SuggestedVideos';
 import Comments from '../components/Comments';
-// import LikeButton from '../components/LikeButton'; // REMOVED
+import LikeButton from '../components/LikeButton';
 import ShareButton from '../components/ShareButton';
 import FollowButton from '../components/FollowButton';
 import AdBanner from '../components/AdBanner';
@@ -17,9 +17,11 @@ const WatchPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
+    // Ref to track if view has been counted for the current video ID
     const viewCountedRef = useRef(false);
 
     useEffect(() => {
+        // Reset the ref when the ID changes so we can count the new video
         viewCountedRef.current = false;
 
         const fetchVideo = async () => {
@@ -33,9 +35,9 @@ const WatchPage = () => {
                 );
                 setVideo(response);
                 
-                // View Count Logic
+                // View Count Logic - Only run if not already counted
                 if (!viewCountedRef.current) {
-                    viewCountedRef.current = true;
+                    viewCountedRef.current = true; // Mark as counted immediately
                     try {
                          const currentViews = response.view_count || response.views || 0;
                          await databases.updateDocument(
@@ -70,10 +72,11 @@ const WatchPage = () => {
     if (error || !video) return (
         <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Video not found</h2>
-            <p className="text-gray-500">{error || "The video you are looking for does not exist."}</p>
+            <p className="text-gray-500">{error || "The video you are looking for does not exist or has been removed."}</p>
         </div>
     );
 
+    // MAPPING: Use 'video_url'
     const videoSource = video.video_url || video.videoUrl;
     const thumbnailSource = video.thumbnailUrl || video.thumbnail_url;
 
@@ -90,7 +93,7 @@ const WatchPage = () => {
                             <video 
                                 controls 
                                 autoPlay 
-                                muted 
+                                muted // Added muted to ensure autoplay works on modern browsers
                                 className="w-full h-full object-contain"
                                 src={videoSource}
                                 poster={thumbnailSource}
@@ -113,6 +116,7 @@ const WatchPage = () => {
                             {/* Channel Info */}
                             <div className="flex items-center gap-3">
                                 <Link to={`/channel/${video.userId}`}>
+                                    {/* Uses Avatar Component */}
                                     <Avatar 
                                         url={video.creatorAvatar} 
                                         name={video.username} 
@@ -130,9 +134,9 @@ const WatchPage = () => {
                                 <FollowButton targetUserId={video.userId} />
                             </div>
 
-                            {/* Actions (LIKE BUTTON REMOVED) */}
+                            {/* Actions */}
                             <div className="flex items-center gap-2 justify-end">
-                                {/* <LikeButton videoId={video.$id} initialLikes={video.likes || []} /> */}
+                                <LikeButton videoId={video.$id} initialLikes={video.likes || []} />
                                 <ShareButton />
                             </div>
                         </div>
@@ -151,6 +155,8 @@ const WatchPage = () => {
 
                 {/* Right Side: Suggested Videos & Ads */}
                 <div className="lg:w-1/4 px-4 sm:px-0">
+                    
+                    {/* --- SIDEBAR AD --- */}
                     <AdBanner 
                         slotId="5592018392" 
                         className="mb-6 hidden lg:flex" 
