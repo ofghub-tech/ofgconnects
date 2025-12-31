@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
 import VideoCard from './VideoCard';
-import AdBanner from './AdBanner'; // <--- Import AdBanner
+import AdBanner from './AdBanner';
 import { useInView } from 'react-intersection-observer';
 
-const Feed = () => {
+// [FIX 1]: Accept props here
+const Feed = ({ searchTerm, category }) => {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastId, setLastId] = useState(null);
@@ -16,16 +17,30 @@ const Feed = () => {
     const { ref, inView } = useInView({ threshold: 0.5 });
 
     const fetchVideos = async (isLoadMore = false) => {
-        if (isLoadMore) setLoading(false); // Don't show full spinner for load more
+        if (isLoadMore) setLoading(false);
         
         try {
+            // [FIX 2]: Dynamic Query Logic
             let queries = [
                 Query.orderDesc('$createdAt'),
                 Query.limit(ITEMS_PER_PAGE),
-                // Exclude Shorts/Music from main feed if you want
-                Query.notEqual('category', 'shorts') 
             ];
 
+            // A. Category Filter
+            if (category) {
+                // If on Songs or Kids page, show ONLY that category
+                queries.push(Query.equal('category', category)); 
+            } else {
+                // If on Home page (no category), show everything EXCEPT Shorts
+                queries.push(Query.notEqual('category', 'shorts'));
+            }
+
+            // B. Search Filter (Optional, if you use it later)
+            if (searchTerm) {
+                queries.push(Query.search('title', searchTerm));
+            }
+
+            // C. Pagination
             if (isLoadMore && lastId) {
                 queries.push(Query.cursorAfter(lastId));
             }
@@ -39,6 +54,7 @@ const Feed = () => {
             if (isLoadMore) {
                 setVideos(prev => [...prev, ...response.documents]);
             } else {
+                // [FIX 3]: Replace list completely if it's a new category/search
                 setVideos(response.documents);
             }
 
@@ -57,18 +73,21 @@ const Feed = () => {
         }
     };
 
+    // [FIX 4]: Re-run when category or searchTerm changes
     useEffect(() => {
+        setLoading(true);
+        setVideos([]); // Clear old videos immediately
+        setLastId(null);
+        setHasMore(true);
         fetchVideos(false);
-    }, []);
+    }, [category, searchTerm]);
 
     useEffect(() => {
-        if (inView && hasMore) {
+        if (inView && hasMore && !loading) {
             fetchVideos(true);
         }
-    }, [inView, hasMore]);
+    }, [inView, hasMore, loading]);
 
-    // --- AD INJECTION LOGIC ---
-    // This helper mixes ads into the video list
     const renderContentWithAds = () => {
         const items = [];
         videos.forEach((video, index) => {
@@ -78,7 +97,6 @@ const Feed = () => {
                 </div>
             );
 
-            // Insert an Ad after every 6 videos
             if ((index + 1) % 6 === 0) {
                 items.push(
                     <div key={`ad-${index}`} className="col-span-full">
@@ -100,12 +118,18 @@ const Feed = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-            {/* Top Ad Banner (Optional) */}
             <AdBanner className="mb-8" slotId="YOUR_TOP_BANNER_SLOT_ID" />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {renderContentWithAds()}
-            </div>
+            {/* Check if empty */}
+            {videos.length === 0 && !loading ? (
+                <div className="text-center text-gray-500 py-10">
+                    No videos found in this category.
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {renderContentWithAds()}
+                </div>
+            )}
 
             {hasMore && (
                 <div ref={ref} className="flex justify-center py-8">

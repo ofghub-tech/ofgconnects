@@ -1,3 +1,4 @@
+// src/pages/ShortsWatchPage.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS, COLLECTION_ID_HISTORY } from '../appwriteConfig';
@@ -17,11 +18,11 @@ const ShortsWatchPage = () => {
     const [isScrolling, setIsScrolling] = useState(false);
     const scrollTimeoutRef = useRef(null);
 
-    // --- 1. View Logging Logic (Matched to WatchPage.js) ---
+    // --- 1. View Logging Logic ---
     const logVideoView = async (userId, videoId, currentViewCount) => {
         if (!userId || !videoId) return null;
         try {
-            // Prevent spamming views: Check history first
+            // Check history to prevent duplicate view counts
             const historyCheck = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
@@ -36,7 +37,6 @@ const ShortsWatchPage = () => {
                 [Permission.read(Role.user(userId)), Permission.write(Role.user(userId))]
             );
 
-            // SAFE COUNT: Check both fields like WatchPage.js does
             const safeCurrentCount = currentViewCount || 0;
             const newViewCount = safeCurrentCount + 1;
 
@@ -56,15 +56,15 @@ const ShortsWatchPage = () => {
         const fetchVideos = async () => {
             setLoading(true);
             try {
-                // 1. Fetch the specific video
+                // Fetch the specific video requested
                 const initialVideo = await databases.getDocument(DATABASE_ID, COLLECTION_ID_VIDEOS, videoId);
                 
-                // 2. Fetch feed (Fixed 'adminStatus' query)
+                // Fetch the feed of other shorts
                 const response = await databases.listDocuments(
                     DATABASE_ID, COLLECTION_ID_VIDEOS,
                     [
                         Query.equal('category', 'shorts'),
-                        Query.equal('adminStatus', 'approved'), // FIX: matches ShortsPage.js
+                        Query.equal('adminStatus', 'approved'),
                         Query.notEqual('$id', videoId),
                         Query.orderDesc('$createdAt'),
                         Query.limit(10)
@@ -87,7 +87,6 @@ const ShortsWatchPage = () => {
         const handleViewLog = async () => {
             if (videos.length > 0 && user && videos[currentIndex]) {
                 const currentVideo = videos[currentIndex];
-                // FIX: Look for 'view_count' OR 'views'
                 const currentCount = currentVideo.view_count || currentVideo.views || 0;
                 
                 const newCount = await logVideoView(user.$id, currentVideo.$id, currentCount);
@@ -107,8 +106,10 @@ const ShortsWatchPage = () => {
         handleViewLog();
     }, [currentIndex, user, videos.length]);
 
-    // --- 4. Scroll Logic ---
-    const handleUserInteraction = () => { if (!hasUserInteracted) setHasUserInteracted(true); };
+    // --- 4. User Interaction & Scroll Logic ---
+    const handleUserInteraction = () => { 
+        if (!hasUserInteracted) setHasUserInteracted(true); 
+    };
 
     const handleWheel = (e) => {
         e.stopPropagation();
@@ -138,7 +139,11 @@ const ShortsWatchPage = () => {
     if (loading) return <div className="flex items-center justify-center h-full w-full bg-black text-white">Loading...</div>;
 
     return (
-        <div className="h-full w-full bg-black text-white relative flex justify-center items-center overflow-hidden" onWheel={handleWheel}>
+        <div 
+            className="h-full w-full bg-black text-white relative flex justify-center items-center overflow-hidden" 
+            onWheel={handleWheel}
+            onClick={handleUserInteraction} // [FIX] Added click handler
+        >
             <div className="h-full w-full relative">
                 {videos.map((video, index) => (
                     <div key={video.$id} className="absolute h-full w-full bg-black transition-transform duration-700 ease-in-out" style={getCardStyle(index)}>

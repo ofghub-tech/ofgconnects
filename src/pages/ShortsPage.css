@@ -1,0 +1,173 @@
+/* src/pages/ShortsPage.css */
+
+/* 1. The Main Scroll Container */
+.shorts-container {
+    height: 100vh; /* Full viewport height */
+    width: 100%;
+    overflow-y: scroll; /* Allow vertical scroll */
+    scroll-snap-type: y mandatory; /* SNAP EFFECT */
+    background-color: black; /* YouTube dark background */
+    
+    /* Center the feed */
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+}
+
+/* Hide scrollbar for Chrome/Safari/Opera */
+.shorts-container::-webkit-scrollbar {
+    display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.shorts-container {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* 2. The "Slide" Area (Invisible box that takes up full screen) */
+.short-item {
+    height: 100vh; 
+    width: 100%;
+    
+    /* This centers the actual video player inside the slide */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    scroll-snap-align: start; /* Snap to top */
+    flex-shrink: 0;
+    position: relative;
+}
+
+/* 3. The "Phone Screen" (The actual visible video player) */
+.video-wrapper {
+    /* YouTube Style Sizing */
+    height: 90vh; /* Takes up 90% of screen height */
+    aspect-ratio: 9 / 16; /* Forces strict Mobile shape */
+    max-width: 450px; /* Never gets wider than a phone */
+    
+    background: #1a1a1a;
+    border-radius: 16px; /* Rounded corners like YouTube */
+    overflow: hidden; /* Clips video to rounded corners */
+    position: relative;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); /* Nice subtle shadow */
+}
+
+/* 4. The Video Itself */
+.short-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Zooms to fill the rounded box */
+    cursor: pointer;
+}
+
+/* 5. Overlay Controls (Text & Buttons) */
+.short-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%; /* Cover full video for gradient effect */
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 40%);
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Push content to bottom */
+    padding: 20px;
+    box-sizing: border-box;
+    color: white;
+    pointer-events: none; /* Let clicks pass through to video */
+}
+
+/* Bottom Info Area */
+.short-info {
+    margin-bottom: 10px;
+    width: 80%; /* Leave space for buttons on right */
+    pointer-events: auto; /* Re-enable clicks for text */
+}
+
+.short-info h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
+}
+
+.short-info p {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.4;
+    text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
+}
+
+/* Right Side Actions */
+.short-actions {
+    position: absolute;
+    right: 10px;
+    bottom: 100px; /* Move up slightly */
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    align-items: center;
+    pointer-events: auto; /* Re-enable clicks for buttons */
+}
+
+.action-btn {
+    background: rgba(0, 0, 0, 0.4); /* Subtle circle background */
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.action-btn span {
+    position: absolute;
+    bottom: -20px;
+    font-size: 11px;
+    font-weight: 600;
+    width: 60px;
+    text-align: center;
+}
+/* Add this to the bottom of ShortsPage.css */
+
+.user-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.follow-btn {
+    background: white;
+    color: black;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.follow-btn:hover {
+    background: #e0e0e0;
+}
+
+/* Style when button is in "Following" state */
+.follow-btn.following {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}

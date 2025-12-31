@@ -1,106 +1,183 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+// src/components/ShortsVideoCard.js
+import React, { useRef, useState, useEffect } from 'react';
+import LikeButton from './LikeButton';
+import ShareButton from './ShareButton';
+import FollowButton from './FollowButton';
 import Avatar from './Avatar';
 
 const ShortsVideoCard = ({ video, isActive, hasUserInteracted }) => {
     const videoRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
+    // 1. Get the correct video source
+    const videoSrc = video.video_url || video.videoUrl || video.url;
+    const thumbnailSrc = video.thumbnailUrl || video.thumbnail_url;
+
+    // 2. Manage Playback when active state changes
     useEffect(() => {
         if (!videoRef.current) return;
+
         if (isActive) {
+            // Reset video to start
             videoRef.current.currentTime = 0;
+            setIsLoading(true);
+            setError(null);
+
+            // Attempt to Play
             const playPromise = videoRef.current.play();
             if (playPromise !== undefined) {
-                playPromise.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                playPromise
+                    .then(() => {
+                        setIsPlaying(true);
+                        setIsLoading(false); 
+                    })
+                    .catch((err) => {
+                        console.warn("Autoplay blocked/failed:", err);
+                        setIsPlaying(false);
+                        // If blocked, mute and try again (Browser Policy)
+                        if (videoRef.current) {
+                            videoRef.current.muted = true;
+                            videoRef.current.play()
+                                .then(() => setIsPlaying(true))
+                                .catch(e => console.error("Muted play failed", e));
+                        }
+                    });
             }
         } else {
+            // Pause if not active
             videoRef.current.pause();
             setIsPlaying(false);
         }
     }, [isActive]);
 
-    if (!video) return null;
+    // 3. Safety Check: If video is already ready (e.g. from cache)
+    useEffect(() => {
+        if (videoRef.current && videoRef.current.readyState >= 3) {
+            setIsLoading(false);
+        }
+    }, []);
 
-    // --- FIX: Data Mapping matched to WatchPage.js ---
-    // WatchPage uses: video.video_url || video.videoUrl
-    const videoSrc = video.video_url || video.videoUrl || video.fileUrl;
-    const thumbnailSrc = video.thumbnailUrl || video.thumbnail_url;
-    
-    // WatchPage uses: video.username and video.creatorAvatar (Direct fields)
-    // We add a fallback to nested creator object just in case
-    const creatorName = video.username || video?.creator?.name || 'Unknown';
-    const creatorAvatar = video.creatorAvatar || video?.creator?.prefs?.avatar;
-    const views = video.view_count || video.views || 0;
+    // 4. Manual Play/Pause Toggle
+    const togglePlay = () => {
+        if (!videoRef.current) return;
+        
+        if (isPlaying) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            videoRef.current.play();
+            setIsPlaying(true);
+        }
+    };
 
-    // --- RENDER: PLAYER ---
-    if (isActive !== undefined) {
-        return (
-            <div className="relative h-full w-full bg-black flex justify-center items-center">
-                <video
-                    ref={videoRef}
-                    src={videoSrc}
-                    className="h-full w-full object-cover"
-                    loop
-                    playsInline
-                    poster={thumbnailSrc}
-                    onClick={(e) => {
-                        e.target.paused ? e.target.play() : e.target.pause();
-                        setIsPlaying(!e.target.paused);
-                    }}
-                />
+    // 5. Event Handlers
+    const handleWaiting = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
+    const handlePlaying = () => {
+        setIsLoading(false);
+        setIsPlaying(true);
+    };
+    const handleError = (e) => {
+        console.error("Video Error:", e);
+        setIsLoading(false);
+        setError("Video failed to load");
+    };
 
-                {!isPlaying && isActive && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
-                            <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
+    return (
+        <div className="relative h-full w-full bg-black flex justify-center">
+            {/* --- VIDEO CONTAINER --- */}
+            <div 
+                className="relative h-full w-full sm:w-[450px] cursor-pointer bg-black"
+                onClick={togglePlay}
+            >
+                {/* Error Message */}
+                {error && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/80">
+                        <p className="text-red-500 font-bold px-4 text-center">{error}</p>
                     </div>
                 )}
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-24 pointer-events-none">
-                    <div className="flex items-end justify-between pointer-events-auto">
-                        <div className="flex-1 mr-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Avatar url={creatorAvatar} name={creatorName} className="w-10 h-10 border border-white" />
-                                <span className="font-bold text-white text-base">@{creatorName}</span>
-                                <button className="bg-white text-black text-xs font-bold px-4 py-1.5 rounded-full hover:bg-gray-200 transition">Subscribe</button>
-                            </div>
-                            <p className="text-white text-sm line-clamp-2 drop-shadow-md mb-2">{video.title}</p>
-                        </div>
-                        <div className="flex flex-col gap-6 items-center pb-4">
-                            <div className="text-center">
-                                <button className="bg-gray-800/60 p-3 rounded-full hover:bg-gray-700 backdrop-blur-sm transition">
-                                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/></svg>
-                                </button>
-                                <span className="text-xs font-medium text-white block mt-1">Like</span>
-                            </div>
-                            <div className="text-center">
-                                <button className="bg-gray-800/60 p-3 rounded-full hover:bg-gray-700 backdrop-blur-sm transition">
-                                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-7 7 7z"/></svg>
-                                </button>
-                                <span className="text-xs font-medium text-white block mt-1">Share</span>
-                            </div>
+                {/* Loading Spinner */}
+                {isLoading && !error && (
+                    <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                    </div>
+                )}
+
+                {/* The Video Player */}
+                {videoSrc ? (
+                    <video
+                        ref={videoRef}
+                        src={videoSrc}
+                        poster={thumbnailSrc}
+                        className="h-full w-full object-contain"
+                        loop
+                        playsInline
+                        preload="auto"
+                        muted={!hasUserInteracted} // Start muted to allow autoplay
+                        
+                        onWaiting={handleWaiting}
+                        onCanPlay={handleCanPlay}
+                        onLoadedData={handleCanPlay}
+                        onPlaying={handlePlaying}
+                        onError={handleError}
+                    />
+                ) : (
+                    <div className="flex h-full items-center justify-center text-gray-500">
+                        Video source unavailable
+                    </div>
+                )}
+
+                {/* Play Icon Overlay */}
+                {!isPlaying && !isLoading && !error && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                        <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm">
+                            <svg className="w-8 h-8 text-white fill-white" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
-        );
-    }
 
-    // --- RENDER: GRID PREVIEW ---
-    return (
-        <Link to={`/shorts/watch/${video.$id}`} className="block group relative aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden">
-            <img src={thumbnailSrc} alt={video.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80" />
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-                <h3 className="text-white text-sm font-bold line-clamp-2 mb-2 drop-shadow-md">{video.title}</h3>
-                <div className="flex items-center gap-2">
-                    <Avatar url={creatorAvatar} name={creatorName} size="xs" className="w-6 h-6 text-[10px] ring-1 ring-white/30" />
-                    <span className="text-gray-200 text-xs font-medium truncate drop-shadow-sm">{views} views</span>
+            {/* --- RIGHT ACTIONS --- */}
+            <div className="absolute right-2 bottom-20 flex flex-col gap-6 items-center z-30 sm:right-[calc(50%-220px)]">
+                <div className="flex flex-col items-center">
+                    <Avatar 
+                        url={video.creatorAvatar} 
+                        name={video.username} 
+                        size="md" 
+                        className="border-2 border-white mb-[-10px] z-10" 
+                    />
                 </div>
+                
+                <div className="flex flex-col items-center gap-1">
+                    <LikeButton videoId={video.$id} initialLikes={video.likes || []} />
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                    <button className="bg-gray-800/60 p-3 rounded-full hover:bg-gray-700 transition backdrop-blur-sm">
+                         <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                    </button>
+                    <span className="text-xs font-medium text-white drop-shadow-md">0</span>
+                </div>
+
+                <ShareButton />
             </div>
-        </Link>
+
+            {/* --- BOTTOM INFO --- */}
+            <div className="absolute bottom-4 left-4 right-16 z-30 text-left sm:left-[calc(50%-200px)] sm:w-[350px]">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-bold text-white drop-shadow-md text-sm sm:text-base">@{video.username}</h3>
+                    <FollowButton targetUserId={video.userId} />
+                </div>
+                <p className="text-sm text-white/90 line-clamp-2 drop-shadow-md">
+                    {video.title}
+                </p>
+            </div>
+        </div>
     );
 };
 

@@ -1,137 +1,195 @@
-// src/pages/ShortsPage.js
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { databases } from '../appwriteConfig';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { databases, account } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
-import { useInView } from 'react-intersection-observer';
+import { FaComment, FaShare, FaExclamationCircle } from 'react-icons/fa'; // Removed FaHeart
+import './ShortsPage.css';
 
 const ShortsPage = () => {
+    const { id } = useParams();
     const navigate = useNavigate();
-    const [shorts, setShorts] = useState([]);
+    const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // Pagination
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [lastId, setLastId] = useState(null);
-    const [hasMore, setHasMore] = useState(true);
-    const ITEMS_PER_PAGE = 18;
-
-    const { ref, inView } = useInView({ threshold: 0.5 });
-
-    const fetchShorts = async (isLoadMore = false) => {
-        if (isLoadMore) setLoadingMore(true);
-        else setLoading(true);
-
-        try {
-            let queries = [
-                Query.equal('category', 'shorts'),
-                Query.equal('adminStatus', 'approved'),
-                Query.orderDesc('$createdAt'),
-                Query.limit(ITEMS_PER_PAGE)
-            ];
-
-            if (isLoadMore && lastId) {
-                queries.push(Query.cursorAfter(lastId));
-            }
-
-            const response = await databases.listDocuments(
-                DATABASE_ID,
-                COLLECTION_ID_VIDEOS,
-                queries
-            );
-
-            if (isLoadMore) {
-                setShorts(prev => [...prev, ...response.documents]);
-            } else {
-                setShorts(response.documents);
-            }
-
-            setHasMore(response.documents.length === ITEMS_PER_PAGE);
-            if (response.documents.length > 0) {
-                setLastId(response.documents[response.documents.length - 1].$id);
-            }
-
-        } catch (error) {
-            console.error('Failed to fetch shorts:', error);
-        }
-        setLoading(false);
-        setLoadingMore(false);
-    };
-
-    useEffect(() => { fetchShorts(false); }, []);
+    const [error, setError] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     useEffect(() => {
-        if (inView && hasMore && !loading && !loadingMore) fetchShorts(true);
-    }, [inView, hasMore, loading, loadingMore]);
+        // 1. Get Current User (Used for Follow button visibility)
+        const checkUser = async () => {
+            try {
+                const user = await account.get();
+                setCurrentUserId(user.$id);
+            } catch (e) {
+                console.log("User not logged in");
+            }
+        };
+        checkUser();
 
-    const handleMouseOver = (e) => { 
-        const video = e.target;
-        if (video.paused) video.play().catch(() => {}); 
-    };
+        // 2. Fetch Videos
+        const fetchShorts = async () => {
+            setLoading(true);
+            try {
+                if (!DATABASE_ID || !COLLECTION_ID_VIDEOS) throw new Error("Missing Config IDs");
+
+                let fetchedVideos = [];
+                // Fetch specific video if ID exists
+                if (id) {
+                    try {
+                        const specificVideo = await databases.getDocument(DATABASE_ID, COLLECTION_ID_VIDEOS, id);
+                        fetchedVideos.push(specificVideo);
+                    } catch (e) { console.warn("Video not found"); }
+                }
+
+                // Fetch feed
+                const response = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTION_ID_VIDEOS,
+                    [Query.limit(10), Query.orderDesc('$createdAt')]
+                );
+
+                const newVideos = response.documents.filter(doc => doc.$id !== id);
+                setVideos([...fetchedVideos, ...newVideos]);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchShorts();
+    }, [id]);
+
+    if (error) return <div className="error-container"><FaExclamationCircle /> {error}</div>;
+    if (loading) return <div className="loading-container">Loading Shorts...</div>;
+
+    return (
+        <div className="shorts-container">
+            {videos.map((video) => (
+                <SingleShort 
+                    key={video.$id} 
+                    video={video} 
+                    currentUserId={currentUserId} 
+                    navigate={navigate}
+                />
+            ))}
+        </div>
+    );
+};
+
+// --- Sub-Component (Like Button Removed) ---
+const SingleShort = ({ video, currentUserId, navigate }) => {
+    const videoRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
     
-    const handleMouseOut = (e) => { 
-        const video = e.target;
-        if (!video.paused) {
-            video.pause();
-            video.currentTime = 0; 
+    // Interaction States
+    const [isFollowing, setIsFollowing] = useState(false); 
+
+    // 1. Scroll & Auto-Play Logic
+    useEffect(() => {
+        const options = { threshold: 0.6 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!videoRef.current) return;
+                if (entry.isIntersecting) {
+                    videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+                } else {
+                    if (videoRef.current) {
+                        videoRef.current.pause();
+                        videoRef.current.currentTime = 0; // Reset
+                    }
+                    setIsPlaying(false);
+                }
+            });
+        }, options);
+
+        if (videoRef.current) observer.observe(videoRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    // 2. Handle Follow
+    const handleFollow = () => {
+        if (!currentUserId) return alert("Please login to follow!");
+        setIsFollowing(!isFollowing);
+        console.log("Follow toggled for:", video.userId);
+    };
+
+    // 3. Handle Share
+    const handleShare = async () => {
+        const shareData = {
+            title: video.title,
+            text: `Check out this video by ${video.username}`,
+            url: window.location.origin + `/shorts/watch/${video.$id}`,
+        };
+
+        if (navigator.share) {
+            try { await navigator.share(shareData); } catch (e) {}
+        } else {
+            navigator.clipboard.writeText(shareData.url);
+            alert("Link copied to clipboard!");
         }
     };
 
+    // 4. Handle Comment
+    const handleComment = () => {
+        navigate(`/watch/${video.$id}`);
+    };
+
+    const videoSource = video.video_url || video.videoUrl;
+    if (!videoSource) return null;
+
     return (
-        <div className="p-4 sm:p-6 lg:p-8 min-h-full">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6 dark:text-gray-100">Shorts</h1>
-
-            {loading && (
-                 <div className="flex justify-center items-center h-64">
-                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                 </div>
-            )}
-
-            {!loading && (
-                <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {shorts.map(short => {
-                            // MAPPING: Use video_url
-                            const thumb = short.thumbnailUrl || short.thumbnail_url;
-                            const src = short.video_url || short.videoUrl;
-                            const hasThumbnail = !!thumb;
-
-                            return (
-                                <div
-                                    key={short.$id}
-                                    className="glass-panel relative aspect-[9/16] overflow-hidden p-0 cursor-pointer group transition-all duration-300 ease-in-out hover:scale-105"
-                                    onClick={() => navigate(`/shorts/watch/${short.$id}`)}
+        <div className="short-item">
+            <div className="video-wrapper">
+                <video
+                    ref={videoRef}
+                    src={videoSource}
+                    className="short-video"
+                    loop
+                    playsInline
+                    onClick={() => {
+                        if (isPlaying) videoRef.current.pause();
+                        else videoRef.current.play();
+                        setIsPlaying(!isPlaying);
+                    }}
+                />
+                
+                {/* Overlay UI */}
+                <div className="short-overlay">
+                    <div className="short-info">
+                        <div className="user-header">
+                            <h3>@{video.username || "User"}</h3>
+                            
+                            {/* Follow Button */}
+                            {currentUserId !== video.userId && (
+                                <button 
+                                    className={`follow-btn ${isFollowing ? 'following' : ''}`} 
+                                    onClick={handleFollow}
                                 >
-                                    {src ? (
-                                        <video
-                                            src={src}
-                                            poster={hasThumbnail ? thumb : undefined}
-                                            className="w-full h-full object-cover rounded-xl"
-                                            loop 
-                                            muted 
-                                            playsInline
-                                            preload={hasThumbnail ? "none" : "metadata"}
-                                            onMouseOver={handleMouseOver}
-                                            onMouseOut={handleMouseOut}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                                            <span className="text-xs text-white">No URL</span>
-                                        </div>
-                                    )}
-                                    
-                                    <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
-                                        <span className="text-white text-sm font-medium truncate block">
-                                            {short.username}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                    {isFollowing ? "Following" : "Follow"}
+                                </button>
+                            )}
+                        </div>
+                        <p>{video.title}</p>
                     </div>
-                </>
-            )}
+                    
+                    <div className="short-actions">
+                        {/* Like Button REMOVED here */}
+
+                        {/* Comment Button */}
+                        <button className="action-btn" onClick={handleComment}>
+                            <FaComment /> 
+                            <span>Comment</span>
+                        </button>
+
+                        {/* Share Button */}
+                        <button className="action-btn" onClick={handleShare}>
+                            <FaShare /> 
+                            <span>Share</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

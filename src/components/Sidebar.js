@@ -3,13 +3,13 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
     HomeIcon, FireIcon, MusicalNoteIcon, UserGroupIcon, 
-    ClockIcon, HandThumbUpIcon, UserIcon, Cog6ToothIcon, 
+    ClockIcon, UserIcon, Cog6ToothIcon, 
     ArrowLeftOnRectangleIcon 
 } from '@heroicons/react/24/outline';
 import { 
     HomeIcon as HomeIconSolid, FireIcon as FireIconSolid, 
     MusicalNoteIcon as MusicalNoteIconSolid, UserGroupIcon as UserGroupIconSolid,
-    ClockIcon as ClockIconSolid, HandThumbUpIcon as HandThumbUpIconSolid, 
+    ClockIcon as ClockIconSolid, 
     UserIcon as UserIconSolid, Cog6ToothIcon as Cog6ToothIconSolid 
 } from '@heroicons/react/24/solid';
 
@@ -95,7 +95,6 @@ const Sidebar = () => {
 
                 <NavItem to="/myspace" icon={UserIcon} activeIcon={UserIconSolid} label="My Channel" />
                 <NavItem to="/history" icon={ClockIcon} activeIcon={ClockIconSolid} label="History" />
-                <NavItem to="/liked" icon={HandThumbUpIcon} activeIcon={HandThumbUpIconSolid} label="Liked Videos" />
                 
                 <div className={`my-4 mx-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
 

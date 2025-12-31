@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Avatar from './Avatar'; // Ensure Avatar is imported
+import Avatar from './Avatar'; 
 import { 
     MagnifyingGlassIcon, 
-    // BellIcon, <--- Removed unused import
     VideoCameraIcon 
 } from '@heroicons/react/24/outline';
 
@@ -24,7 +23,7 @@ const Header = ({ toggleSidebar }) => {
     return (
         <header className="fixed top-0 left-0 right-0 z-40 px-4 py-3 transition-all duration-300">
             
-            {/* Background Gradient - No hard box, just readability */}
+            {/* Background Gradient */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/60 to-transparent pointer-events-none" />
 
             <div className="relative z-10 flex items-center justify-between max-w-7xl mx-auto">
@@ -57,7 +56,6 @@ const Header = ({ toggleSidebar }) => {
                                 onFocus={() => setIsSearchFocused(true)}
                                 onBlur={() => setIsSearchFocused(false)}
                             />
-                            {/* Search Button (Visible only on focus or hover) */}
                             <button 
                                 type="submit"
                                 className={`
@@ -74,9 +72,9 @@ const Header = ({ toggleSidebar }) => {
                 {/* RIGHT: Action Icons & Profile */}
                 <div className="flex items-center gap-2 sm:gap-4">
                     
-                    {/* Upload Icon */}
+                    {/* Upload Icon (FIXED LINK) */}
                     <button 
-                        onClick={() => navigate('/myspace')}
+                        onClick={() => navigate('/upload')} // <--- CHANGED THIS FROM /myspace TO /upload
                         className="p-2 text-gray-300 rounded-full hover:bg-white/10 hover:text-white transition-all duration-200 group relative"
                     >
                         <VideoCameraIcon className="w-6 h-6" />
@@ -85,14 +83,11 @@ const Header = ({ toggleSidebar }) => {
                         </span>
                     </button>
 
-                    {/* Notification Button REMOVED here */}
-
                     {/* Profile Avatar */}
                     <button 
                         onClick={() => navigate('/myspace')}
                         className="ml-2 relative group focus:outline-none"
                     >
-                        {/* Using the Avatar component for consistency */}
                         <Avatar 
                             url={user?.prefs?.avatar} 
                             name={user?.name} 
