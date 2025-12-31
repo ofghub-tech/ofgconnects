@@ -1,8 +1,15 @@
 // src/pages/WatchPage.js
-import React, { useState, useEffect, useRef } from 'react'; // Added useRef
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
-import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
+import { 
+    DATABASE_ID, 
+    COLLECTION_ID_VIDEOS, 
+    COLLECTION_ID_HISTORY // <--- Imported
+} from '../appwriteConfig';
+import { Query, ID, Permission, Role } from 'appwrite'; // <--- Imported for history logic
+import { useAuth } from '../context/AuthContext'; // <--- Imported to identify user
+
 import SuggestedVideos from '../components/SuggestedVideos';
 import Comments from '../components/Comments';
 import LikeButton from '../components/LikeButton';
@@ -13,15 +20,16 @@ import Avatar from '../components/Avatar';
 
 const WatchPage = () => {
     const { id } = useParams();
+    const { user } = useAuth(); // <--- Get current user
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
-    // Ref to track if view has been counted for the current video ID
+    // Ref to track if view has been counted for the current session
     const viewCountedRef = useRef(false);
 
     useEffect(() => {
-        // Reset the ref when the ID changes so we can count the new video
+        // Reset the ref when the ID changes
         viewCountedRef.current = false;
 
         const fetchVideo = async () => {
@@ -35,21 +43,58 @@ const WatchPage = () => {
                 );
                 setVideo(response);
                 
-                // View Count Logic - Only run if not already counted
-                if (!viewCountedRef.current) {
-                    viewCountedRef.current = true; // Mark as counted immediately
+                // --- FIXED VIEW COUNT LOGIC ---
+                // Only attempt to count if user is logged in
+                if (user && !viewCountedRef.current) {
+                    viewCountedRef.current = true; // Mark as checked for this session
+                    
                     try {
-                         const currentViews = response.view_count || response.views || 0;
-                         await databases.updateDocument(
+                        // 1. Check if this user has ALREADY watched this video
+                        const historyCheck = await databases.listDocuments(
                             DATABASE_ID,
-                            COLLECTION_ID_VIDEOS,
-                            id,
-                            { view_count: currentViews + 1 }
-                         );
+                            COLLECTION_ID_HISTORY,
+                            [
+                                Query.equal('userId', user.$id),
+                                Query.equal('videoId', id),
+                                Query.limit(1)
+                            ]
+                        );
+
+                        // 2. If NO history record found, it's a new view
+                        if (historyCheck.total === 0) {
+                            
+                            // A. Create History Record
+                            await databases.createDocument(
+                                DATABASE_ID,
+                                COLLECTION_ID_HISTORY,
+                                ID.unique(),
+                                {
+                                    userId: user.$id,
+                                    videoId: id
+                                },
+                                [
+                                    Permission.read(Role.user(user.$id)),
+                                    Permission.write(Role.user(user.$id))
+                                ]
+                            );
+
+                            // B. Increment Video View Count
+                            const currentViews = response.view_count || response.views || 0;
+                            await databases.updateDocument(
+                                DATABASE_ID,
+                                COLLECTION_ID_VIDEOS,
+                                id,
+                                { view_count: currentViews + 1 }
+                            );
+                            
+                            // Optional: Update local state to reflect new count immediately
+                            setVideo(prev => ({...prev, view_count: currentViews + 1}));
+                        }
                     } catch(e) {
-                        console.log("View update failed", e);
+                        console.log("View count update failed", e);
                     }
                 }
+                // ------------------------------
 
             } catch (err) {
                 console.error("Error fetching video:", err);
@@ -61,7 +106,7 @@ const WatchPage = () => {
         if (id) {
             fetchVideo();
         }
-    }, [id]);
+    }, [id, user]); // Added user to dependency array
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen bg-black">
@@ -93,7 +138,7 @@ const WatchPage = () => {
                             <video 
                                 controls 
                                 autoPlay 
-                                muted // Added muted to ensure autoplay works on modern browsers
+                                muted 
                                 className="w-full h-full object-contain"
                                 src={videoSource}
                                 poster={thumbnailSource}
@@ -116,7 +161,6 @@ const WatchPage = () => {
                             {/* Channel Info */}
                             <div className="flex items-center gap-3">
                                 <Link to={`/channel/${video.userId}`}>
-                                    {/* Uses Avatar Component */}
                                     <Avatar 
                                         url={video.creatorAvatar} 
                                         name={video.username} 
@@ -155,13 +199,10 @@ const WatchPage = () => {
 
                 {/* Right Side: Suggested Videos & Ads */}
                 <div className="lg:w-1/4 px-4 sm:px-0">
-                    
-                    {/* --- SIDEBAR AD --- */}
                     <AdBanner 
                         slotId="5592018392" 
                         className="mb-6 hidden lg:flex" 
                     />
-                    
                     <h3 className="text-lg font-bold mb-4 hidden lg:block">Up Next</h3>
                     <SuggestedVideos currentVideo={video} />
                 </div>

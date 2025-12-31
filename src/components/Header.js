@@ -72,9 +72,9 @@ const Header = ({ toggleSidebar }) => {
                 {/* RIGHT: Action Icons & Profile */}
                 <div className="flex items-center gap-2 sm:gap-4">
                     
-                    {/* Upload Icon (FIXED LINK) */}
+                    {/* Upload Icon - FIXED NAVIGATION */}
                     <button 
-                        onClick={() => navigate('/upload')} // <--- CHANGED THIS FROM /myspace TO /upload
+                        onClick={() => navigate('/myspace', { state: { openUpload: true } })} 
                         className="p-2 text-gray-300 rounded-full hover:bg-white/10 hover:text-white transition-all duration-200 group relative"
                     >
                         <VideoCameraIcon className="w-6 h-6" />

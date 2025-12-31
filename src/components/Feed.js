@@ -1,4 +1,3 @@
-// src/components/Feed.js
 import React, { useState, useEffect } from 'react';
 import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
@@ -6,7 +5,6 @@ import VideoCard from './VideoCard';
 import AdBanner from './AdBanner';
 import { useInView } from 'react-intersection-observer';
 
-// [FIX 1]: Accept props here
 const Feed = ({ searchTerm, category }) => {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,10 +18,12 @@ const Feed = ({ searchTerm, category }) => {
         if (isLoadMore) setLoading(false);
         
         try {
-            // [FIX 2]: Dynamic Query Logic
+            // Dynamic Query Logic
             let queries = [
                 Query.orderDesc('$createdAt'),
                 Query.limit(ITEMS_PER_PAGE),
+                // --- FIX: Only show approved videos ---
+                Query.equal('adminStatus', 'approved'), 
             ];
 
             // A. Category Filter
@@ -35,7 +35,7 @@ const Feed = ({ searchTerm, category }) => {
                 queries.push(Query.notEqual('category', 'shorts'));
             }
 
-            // B. Search Filter (Optional, if you use it later)
+            // B. Search Filter
             if (searchTerm) {
                 queries.push(Query.search('title', searchTerm));
             }
@@ -54,7 +54,6 @@ const Feed = ({ searchTerm, category }) => {
             if (isLoadMore) {
                 setVideos(prev => [...prev, ...response.documents]);
             } else {
-                // [FIX 3]: Replace list completely if it's a new category/search
                 setVideos(response.documents);
             }
 
@@ -73,7 +72,7 @@ const Feed = ({ searchTerm, category }) => {
         }
     };
 
-    // [FIX 4]: Re-run when category or searchTerm changes
+    // Re-run when category or searchTerm changes
     useEffect(() => {
         setLoading(true);
         setVideos([]); // Clear old videos immediately

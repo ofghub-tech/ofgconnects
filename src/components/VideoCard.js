@@ -1,15 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import Avatar from './Avatar'; // <--- Import the Avatar component
+import Avatar from './Avatar'; 
 
 const VideoCard = ({ video }) => {
     if (!video) return null;
 
-    // Handle different data structures (e.g., if creator is expanded or flat)
-    const creatorName = video?.creator?.name || video?.creatorName || 'Unknown';
+    // --- FIX: Map the fields correctly based on UploadForm.js ---
+    // 1. Check 'username' (how it's saved) 
+    const creatorName = video?.creator?.name || video?.creatorName || video?.username || 'Unknown';
+    
+    // 2. Check 'creatorAvatar' (how it's saved)
     const creatorAvatar = video?.creator?.prefs?.avatar || video?.creatorAvatar; 
-    const views = video?.views || 0;
+    
+    // 3. Check 'view_count' (how it's saved)
+    const views = video?.views || video?.view_count || 0;
     
     return (
         <div className="flex flex-col gap-3 group">
@@ -23,7 +28,7 @@ const VideoCard = ({ video }) => {
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                 
-                {/* Duration Badge (Optional - add if you have duration data) */}
+                {/* Duration Badge (Optional) */}
                 {video.duration && (
                     <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs font-medium px-2 py-0.5 rounded">
                         {video.duration}

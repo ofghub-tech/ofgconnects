@@ -8,6 +8,9 @@ import Sidebar from './components/Sidebar';
 // --- NEW IMPORT: The Smart Widget Wrapper ---
 import BibleWidget from './components/BibleFeature/BibleWidget';
 
+// --- NEW IMPORT: Upload Component ---
+import UploadForm from './components/UploadForm'; // <--- ADDED THIS
+
 // Pages
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
@@ -48,6 +51,16 @@ function App() {
                         
                         {/* Protected Routes */}
                         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                        
+                        {/* --- NEW UPLOAD ROUTE --- */}
+                        <Route path="/upload" element={
+                            <ProtectedRoute>
+                                <div className="max-w-4xl mx-auto py-8">
+                                    <UploadForm />
+                                </div>
+                            </ProtectedRoute>
+                        } />
+
                         <Route path="/watch/:id" element={<ProtectedRoute><WatchPage /></ProtectedRoute>} />
                         <Route path="/shorts" element={<ProtectedRoute><ShortsPage /></ProtectedRoute>} />
                         <Route path="/shorts/watch/:id" element={<ProtectedRoute><ShortsWatchPage /></ProtectedRoute>} />

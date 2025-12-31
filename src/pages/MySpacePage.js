@@ -1,23 +1,23 @@
-// src/pages/MySpacePage.js
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom'; 
 import UploadForm from '../components/UploadForm';
 import Modal from '../components/Modal';
 import { useInView } from 'react-intersection-observer';
 import VideoCard from '../components/VideoCard'; 
-import Avatar from '../components/Avatar'; // <--- Import Avatar
+import Avatar from '../components/Avatar';
 
 const MySpacePage = () => {
     const { user } = useAuth();
+    const location = useLocation(); 
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
     
     // TABS STATE
-    const [activeTab, setActiveTab] = useState('videos'); // 'videos', 'songs', 'shorts'
+    const [activeTab, setActiveTab] = useState('videos'); 
 
     // PAGINATION
     const [loadingMore, setLoadingMore] = useState(false);
@@ -26,6 +26,15 @@ const MySpacePage = () => {
     const ITEMS_PER_PAGE = 24; 
 
     const { ref, inView } = useInView({ threshold: 0.1 });
+
+    // Handle Direct Upload Link (e.g. from Header)
+    useEffect(() => {
+        if (location.state?.openUpload) {
+            setShowUploadModal(true);
+            // Clear state so it doesn't get stuck open on refresh
+            window.history.replaceState({}, document.title)
+        }
+    }, [location]);
 
     const fetchUserContent = async (isLoadMore = false) => {
         if (!user) return;
@@ -40,13 +49,11 @@ const MySpacePage = () => {
                 Query.limit(ITEMS_PER_PAGE)
             ];
 
-            // --- FILTER LOGIC (Matches Mobile App) ---
             if (activeTab === 'shorts') {
                 queries.push(Query.equal('category', 'shorts'));
             } else if (activeTab === 'songs') {
                 queries.push(Query.equal('category', ['music', 'song', 'songs']));
             } else {
-                // Videos tab: Exclude shorts and music
                 queries.push(Query.notEqual('category', 'shorts'));
                 queries.push(Query.notEqual('category', 'music'));
                 queries.push(Query.notEqual('category', 'song'));
@@ -76,7 +83,6 @@ const MySpacePage = () => {
         setLoadingMore(false);
     };
 
-    // Refetch when Tab or User changes
     useEffect(() => {
         setVideos([]);
         setLastId(null);
@@ -97,11 +103,10 @@ const MySpacePage = () => {
                 {/* --- HEADER WITH AVATAR --- */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                     <div className="flex items-center gap-4">
-                        {/* Avatar Component */}
                         <Avatar 
                             url={user?.prefs?.avatar} 
                             name={user?.name} 
-                            size="lg" // 90px
+                            size="lg"
                             className="ring-4 ring-gray-800 dark:ring-gray-700 shadow-xl"
                         />
                         <div>
@@ -152,7 +157,6 @@ const MySpacePage = () => {
                             ) : (
                                 videos.map((video) => (
                                     activeTab === 'shorts' ? (
-                                        // Shorts Card
                                         <Link key={video.$id} to={`/shorts/watch/${video.$id}`} className="block group relative aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden shadow-lg border border-gray-800">
                                             <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"/>
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"/>
@@ -160,7 +164,6 @@ const MySpacePage = () => {
                                                 <p className="text-white text-sm font-bold truncate drop-shadow-md">{video.title}</p>
                                                 <p className="text-gray-300 text-xs truncate mt-1">{video.views || 0} views</p>
                                             </div>
-                                            {/* Status Badge */}
                                             {video.adminStatus !== 'approved' && (
                                                 <div className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase tracking-wider ${video.adminStatus === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'}`}>
                                                     {video.adminStatus}
@@ -168,10 +171,8 @@ const MySpacePage = () => {
                                             )}
                                         </Link>
                                     ) : (
-                                        // Standard Video Card
                                         <div key={video.$id} className="relative group">
                                             <VideoCard video={video} />
-                                            {/* Overlay status badge */}
                                             {video.adminStatus !== 'approved' && (
                                                 <div className={`absolute top-2 left-2 z-10 px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm backdrop-blur-md ${video.adminStatus === 'rejected' ? 'bg-red-500/90' : 'bg-yellow-500/90'}`}>
                                                     {video.adminStatus?.toUpperCase() || 'PENDING'}
@@ -191,8 +192,12 @@ const MySpacePage = () => {
                     </>
                 )}
                 
+                {/* --- FIX IS HERE: Added isOpen prop --- */}
                 {showUploadModal && (
-                    <Modal onClose={() => setShowUploadModal(false)}>
+                    <Modal 
+                        isOpen={showUploadModal} // <--- THIS WAS MISSING
+                        onClose={() => setShowUploadModal(false)}
+                    >
                         <UploadForm onUploadSuccess={() => {
                             setShowUploadModal(false);
                             setVideos([]); 
