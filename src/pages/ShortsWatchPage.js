@@ -17,9 +17,11 @@ const ShortsWatchPage = () => {
     const [isScrolling, setIsScrolling] = useState(false);
     const scrollTimeoutRef = useRef(null);
 
+    // --- 1. View Logging Logic (Matched to WatchPage.js) ---
     const logVideoView = async (userId, videoId, currentViewCount) => {
         if (!userId || !videoId) return null;
         try {
+            // Prevent spamming views: Check history first
             const historyCheck = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTION_ID_HISTORY,
@@ -34,7 +36,10 @@ const ShortsWatchPage = () => {
                 [Permission.read(Role.user(userId)), Permission.write(Role.user(userId))]
             );
 
-            const newViewCount = (currentViewCount || 0) + 1;
+            // SAFE COUNT: Check both fields like WatchPage.js does
+            const safeCurrentCount = currentViewCount || 0;
+            const newViewCount = safeCurrentCount + 1;
+
             await databases.updateDocument(
                 DATABASE_ID, COLLECTION_ID_VIDEOS, videoId,
                 { view_count: newViewCount }
@@ -46,25 +51,26 @@ const ShortsWatchPage = () => {
         }
     };
 
+    // --- 2. Fetch Videos ---
     useEffect(() => {
         const fetchVideos = async () => {
             setLoading(true);
             try {
-                // Fetch the specific video user clicked on
+                // 1. Fetch the specific video
                 const initialVideo = await databases.getDocument(DATABASE_ID, COLLECTION_ID_VIDEOS, videoId);
                 
-                // Fetch other shorts for the feed
+                // 2. Fetch feed (Fixed 'adminStatus' query)
                 const response = await databases.listDocuments(
                     DATABASE_ID, COLLECTION_ID_VIDEOS,
                     [
                         Query.equal('category', 'shorts'),
-                        Query.equal('admin_status', 'approved'), // Filter for approved shorts
+                        Query.equal('adminStatus', 'approved'), // FIX: matches ShortsPage.js
                         Query.notEqual('$id', videoId),
-                        Query.orderDesc('$createdAt')
+                        Query.orderDesc('$createdAt'),
+                        Query.limit(10)
                     ]
                 );
                 
-                // Combine them
                 setVideos([initialVideo, ...response.documents].filter(v => v));
                 setCurrentIndex(0);
             } catch (error) {
@@ -73,19 +79,26 @@ const ShortsWatchPage = () => {
             }
             setLoading(false);
         };
-        fetchVideos();
+        if (videoId) fetchVideos();
     }, [videoId, navigate]);
 
+    // --- 3. Handle View Count Update ---
     useEffect(() => {
         const handleViewLog = async () => {
             if (videos.length > 0 && user && videos[currentIndex]) {
                 const currentVideo = videos[currentIndex];
-                const newCount = await logVideoView(user.$id, currentVideo.$id, currentVideo.view_count);
+                // FIX: Look for 'view_count' OR 'views'
+                const currentCount = currentVideo.view_count || currentVideo.views || 0;
+                
+                const newCount = await logVideoView(user.$id, currentVideo.$id, currentCount);
                 
                 if (newCount) {
-                    setVideos(prevVideos => {
-                        const newVideos = [...prevVideos];
-                        newVideos[currentIndex] = { ...newVideos[currentIndex], view_count: newCount };
+                    setVideos(prev => {
+                        const newVideos = [...prev];
+                        newVideos[currentIndex] = { 
+                            ...newVideos[currentIndex], 
+                            view_count: newCount 
+                        };
                         return newVideos;
                     });
                 }
@@ -94,54 +107,48 @@ const ShortsWatchPage = () => {
         handleViewLog();
     }, [currentIndex, user, videos.length]);
 
+    // --- 4. Scroll Logic ---
     const handleUserInteraction = () => { if (!hasUserInteracted) setHasUserInteracted(true); };
 
     const handleWheel = (e) => {
         e.stopPropagation();
         handleUserInteraction();
         if (isScrolling) return;
+        
         const scrollDelta = e.deltaY;
-        if (scrollDelta > 5) {
-            if (currentIndex < videos.length - 1) {
-                setIsScrolling(true);
-                setCurrentIndex(prev => prev + 1);
-            }
-        } else if (scrollDelta < -5) {
-            if (currentIndex > 0) {
-                setIsScrolling(true);
-                setCurrentIndex(prev => prev + 1);
-            }
+        if (scrollDelta > 5 && currentIndex < videos.length - 1) {
+            setIsScrolling(true);
+            setCurrentIndex(prev => prev + 1);
+        } else if (scrollDelta < -5 && currentIndex > 0) {
+            setIsScrolling(true);
+            setCurrentIndex(prev => prev - 1);
         }
+        
         if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
         scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 700);
     };
 
     const getCardStyle = (index) => {
         const relativeIndex = index - currentIndex;
-        if (relativeIndex < 0) return { transform: 'translateX(-100%) scale(0.8)', opacity: 0, zIndex: 10 - Math.abs(relativeIndex) };
-        if (relativeIndex === 0) return { transform: 'translateX(0) scale(1)', opacity: 1, zIndex: 10 };
-        if (relativeIndex === 1) return { transform: 'translateX(0) scale(0.9)', opacity: 0.7, zIndex: 9 };
-        return { transform: `translateX(0) scale(${0.9 - (relativeIndex * 0.1)})`, opacity: 0.4, zIndex: 8 - relativeIndex };
+        if (relativeIndex === 0) return { transform: 'translateY(0)', opacity: 1, zIndex: 10 };
+        if (relativeIndex < 0) return { transform: 'translateY(-100%)', opacity: 0, zIndex: 0 };
+        if (relativeIndex > 0) return { transform: 'translateY(100%)', opacity: 1, zIndex: 1 };
     };
 
-    if (loading) return <div className="flex items-center justify-center h-full w-full"><p className="text-xl text-neutral-400">Loading Shorts...</p></div>;
+    if (loading) return <div className="flex items-center justify-center h-full w-full bg-black text-white">Loading...</div>;
 
     return (
-        <div className="h-full w-full text-white relative flex justify-center items-center overflow-hidden" onWheel={handleWheel}>
+        <div className="h-full w-full bg-black text-white relative flex justify-center items-center overflow-hidden" onWheel={handleWheel}>
             <div className="h-full w-full relative">
-                {videos.map((video, index) => {
-                    if (!video || !video.$id) return null;
-                    return (
-                        <div key={video.$id} className="absolute h-full w-full transition-all duration-700 ease-in-out" style={getCardStyle(index)}>
-                            <ShortsVideoCard
-                                video={video}
-                                isActive={index === currentIndex}
-                                onClose={() => navigate('/shorts')}
-                                hasUserInteracted={hasUserInteracted}
-                            />
-                        </div>
-                    );
-                })}
+                {videos.map((video, index) => (
+                    <div key={video.$id} className="absolute h-full w-full bg-black transition-transform duration-700 ease-in-out" style={getCardStyle(index)}>
+                        <ShortsVideoCard
+                            video={video}
+                            isActive={index === currentIndex}
+                            hasUserInteracted={hasUserInteracted}
+                        />
+                    </div>
+                ))}
             </div>
         </div>
     );

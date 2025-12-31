@@ -101,7 +101,7 @@ const ShortsPage = () => {
                                 <div
                                     key={short.$id}
                                     className="glass-panel relative aspect-[9/16] overflow-hidden p-0 cursor-pointer group transition-all duration-300 ease-in-out hover:scale-105"
-                                    onClick={() => navigate(`/watch/${short.$id}`)}
+                                    onClick={() => navigate(`/shorts/watch/${short.$id}`)}
                                 >
                                     {src ? (
                                         <video
