@@ -134,7 +134,7 @@ const UploadForm = ({ onUploadSuccess }) => {
     
     // Status
     const [isUploading, setIsUploading] = useState(false);
-    const [isGeneratingThumb, setIsGeneratingThumb] = useState(false); // New State
+    const [isGeneratingThumb, setIsGeneratingThumb] = useState(false); 
     const [uploadProgress, setUploadProgress] = useState(0);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
@@ -187,7 +187,7 @@ const UploadForm = ({ onUploadSuccess }) => {
         setVideoFile(file);
         setStep(2); 
 
-        // --- NEW: Generate Thumbnail Automatically ---
+        // --- Generate Thumbnail Automatically ---
         setIsGeneratingThumb(true);
         try {
             const autoThumb = await generateVideoThumbnail(file);
@@ -319,6 +319,7 @@ const UploadForm = ({ onUploadSuccess }) => {
                     description,
                     userId: user.$id,
                     username: user.name,
+                    creatorAvatar: user.prefs?.avatar || null, // <--- Added: Save Avatar URL
                     category,
                     tags: tags.trim(),
                     video_url: videoUrl,
@@ -390,7 +391,7 @@ const UploadForm = ({ onUploadSuccess }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormFileInput id="thumbnailFile" label="Thumbnail" onChange={handleThumbnailChange} accept={['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].join(',')} file={thumbnailFile} clearFile={() => setThumbnailFile(null)} />
                             
-                            {/* UPDATED: Loading State or Preview */}
+                            {/* Loading State or Preview */}
                             <div className="h-32 w-full border border-gray-300/50 rounded-md bg-white/50 dark:bg-gray-700/50 flex items-center justify-center overflow-hidden">
                                 {isGeneratingThumb ? (
                                     <div className="flex flex-col items-center gap-2">
@@ -413,8 +414,12 @@ const UploadForm = ({ onUploadSuccess }) => {
                             <option value="kids">Kids</option>
                         </FormSelect>
 
-                        <button type="submit" disabled={isUploading} className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                            {isUploading ? 'Processing...' : 'Publish Video'}
+                        <button 
+                            type="submit" 
+                            disabled={isUploading || isGeneratingThumb} // <--- Disabled while generating
+                            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            {isUploading ? 'Processing...' : isGeneratingThumb ? 'Generating Thumbnail...' : 'Publish Video'}
                         </button>
                     </form>
                 </>

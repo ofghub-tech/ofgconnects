@@ -1,5 +1,5 @@
 // src/pages/WatchPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 import { useParams, Link } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
@@ -8,16 +8,22 @@ import Comments from '../components/Comments';
 import LikeButton from '../components/LikeButton';
 import ShareButton from '../components/ShareButton';
 import FollowButton from '../components/FollowButton';
-import AdBanner from '../components/AdBanner'; // <--- Import AdBanner
-import Avatar from '../components/Avatar';     // <--- Import Avatar
+import AdBanner from '../components/AdBanner';
+import Avatar from '../components/Avatar';
 
 const WatchPage = () => {
     const { id } = useParams();
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    
+    // Ref to track if view has been counted for the current video ID
+    const viewCountedRef = useRef(false);
 
     useEffect(() => {
+        // Reset the ref when the ID changes so we can count the new video
+        viewCountedRef.current = false;
+
         const fetchVideo = async () => {
             setLoading(true);
             setError(null);
@@ -29,17 +35,20 @@ const WatchPage = () => {
                 );
                 setVideo(response);
                 
-                // View Count Logic
-                try {
-                     const currentViews = response.view_count || response.views || 0;
-                     await databases.updateDocument(
-                        DATABASE_ID,
-                        COLLECTION_ID_VIDEOS,
-                        id,
-                        { view_count: currentViews + 1 }
-                     );
-                } catch(e) {
-                    console.log("View update failed", e);
+                // View Count Logic - Only run if not already counted
+                if (!viewCountedRef.current) {
+                    viewCountedRef.current = true; // Mark as counted immediately
+                    try {
+                         const currentViews = response.view_count || response.views || 0;
+                         await databases.updateDocument(
+                            DATABASE_ID,
+                            COLLECTION_ID_VIDEOS,
+                            id,
+                            { view_count: currentViews + 1 }
+                         );
+                    } catch(e) {
+                        console.log("View update failed", e);
+                    }
                 }
 
             } catch (err) {
@@ -84,6 +93,7 @@ const WatchPage = () => {
                             <video 
                                 controls 
                                 autoPlay 
+                                muted // Added muted to ensure autoplay works on modern browsers
                                 className="w-full h-full object-contain"
                                 src={videoSource}
                                 poster={thumbnailSource}
@@ -106,7 +116,7 @@ const WatchPage = () => {
                             {/* Channel Info */}
                             <div className="flex items-center gap-3">
                                 <Link to={`/channel/${video.userId}`}>
-                                    {/* --- UPDATED: Uses Avatar Component --- */}
+                                    {/* Uses Avatar Component */}
                                     <Avatar 
                                         url={video.creatorAvatar} 
                                         name={video.username} 
@@ -147,7 +157,6 @@ const WatchPage = () => {
                 <div className="lg:w-1/4 px-4 sm:px-0">
                     
                     {/* --- SIDEBAR AD --- */}
-                    {/* Hidden on mobile, visible on Large screens */}
                     <AdBanner 
                         slotId="5592018392" 
                         className="mb-6 hidden lg:flex" 
