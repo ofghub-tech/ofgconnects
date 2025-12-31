@@ -1,6 +1,6 @@
 // src/pages/WatchPage.js
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { databases } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import SuggestedVideos from '../components/SuggestedVideos';
@@ -8,6 +8,8 @@ import Comments from '../components/Comments';
 import LikeButton from '../components/LikeButton';
 import ShareButton from '../components/ShareButton';
 import FollowButton from '../components/FollowButton';
+import AdBanner from '../components/AdBanner'; // <--- Import AdBanner
+import Avatar from '../components/Avatar';     // <--- Import Avatar
 
 const WatchPage = () => {
     const { id } = useParams();
@@ -27,7 +29,7 @@ const WatchPage = () => {
                 );
                 setVideo(response);
                 
-                // View Count Logic (Optional)
+                // View Count Logic
                 try {
                      const currentViews = response.view_count || response.views || 0;
                      await databases.updateDocument(
@@ -101,12 +103,20 @@ const WatchPage = () => {
 
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-gray-200 dark:border-gray-800">
                             
+                            {/* Channel Info */}
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                                    {video.username ? video.username.charAt(0).toUpperCase() : 'U'}
-                                </div>
+                                <Link to={`/channel/${video.userId}`}>
+                                    {/* --- UPDATED: Uses Avatar Component --- */}
+                                    <Avatar 
+                                        url={video.creatorAvatar} 
+                                        name={video.username} 
+                                        size="md" 
+                                    />
+                                </Link>
                                 <div>
-                                    <h3 className="font-semibold text-base">{video.username}</h3>
+                                    <Link to={`/channel/${video.userId}`} className="font-semibold text-base hover:underline">
+                                        {video.username}
+                                    </Link>
                                     <p className="text-xs text-gray-500">
                                         {video.creatorId === video.userId ? 'Owner' : ''}
                                     </p>
@@ -114,6 +124,7 @@ const WatchPage = () => {
                                 <FollowButton targetUserId={video.userId} />
                             </div>
 
+                            {/* Actions */}
                             <div className="flex items-center gap-2 justify-end">
                                 <LikeButton videoId={video.$id} initialLikes={video.likes || []} />
                                 <ShareButton />
@@ -132,8 +143,17 @@ const WatchPage = () => {
                     </div>
                 </div>
 
-                {/* Right Side: Suggested Videos */}
+                {/* Right Side: Suggested Videos & Ads */}
                 <div className="lg:w-1/4 px-4 sm:px-0">
+                    
+                    {/* --- SIDEBAR AD --- */}
+                    {/* Hidden on mobile, visible on Large screens */}
+                    <AdBanner 
+                        slotId="5592018392" 
+                        className="mb-6 hidden lg:flex" 
+                    />
+                    
+                    <h3 className="text-lg font-bold mb-4 hidden lg:block">Up Next</h3>
                     <SuggestedVideos currentVideo={video} />
                 </div>
             </div>

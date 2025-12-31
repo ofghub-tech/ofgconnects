@@ -1,11 +1,10 @@
-// src/components/Header.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Avatar from './Avatar'; // <--- Import the Avatar component
+import Avatar from './Avatar'; // Ensure Avatar is imported
 import { 
     MagnifyingGlassIcon, 
-    BellIcon, 
+    // BellIcon, <--- Removed unused import
     VideoCameraIcon 
 } from '@heroicons/react/24/outline';
 
@@ -32,9 +31,7 @@ const Header = ({ toggleSidebar }) => {
                 
                 {/* LEFT: Logo Area */}
                 <div className="flex items-center gap-4">
-                    {/* <h1 className="text-xl font-bold tracking-tighter text-white hidden sm:block">
-                        OFG<span className="text-blue-500">Connects</span>
-                    </h1> */}
+                    {/* Logo placeholder if needed */}
                 </div>
 
                 {/* CENTER: Glass Search Bar */}
@@ -88,17 +85,14 @@ const Header = ({ toggleSidebar }) => {
                         </span>
                     </button>
 
-                    {/* Notifications */}
-                    <button className="p-2 text-gray-300 rounded-full hover:bg-white/10 hover:text-white transition-all duration-200 relative">
-                        <BellIcon className="w-6 h-6" />
-                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#ef4444]" />
-                    </button>
+                    {/* Notification Button REMOVED here */}
 
-                    {/* Profile Avatar (UPDATED) */}
+                    {/* Profile Avatar */}
                     <button 
                         onClick={() => navigate('/myspace')}
                         className="ml-2 relative group focus:outline-none"
                     >
+                        {/* Using the Avatar component for consistency */}
                         <Avatar 
                             url={user?.prefs?.avatar} 
                             name={user?.name} 

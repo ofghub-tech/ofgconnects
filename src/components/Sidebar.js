@@ -15,7 +15,10 @@ import {
 
 const Sidebar = () => {
     const [isHovered, setIsHovered] = useState(false);
-    const { logout, user } = useAuth();
+    
+    // --- FIX: Use 'logoutUser' instead of 'logout' ---
+    const { logoutUser, user } = useAuth(); 
+    
     const location = useLocation();
 
     // Helper to determine active state
@@ -73,12 +76,7 @@ const Sidebar = () => {
                 fixed left-0 top-0 h-full z-50 pt-20 pb-6 transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]
                 flex flex-col justify-between overflow-hidden
                 
-                /* --- MODIFIED GRADIENT (Left Black -> Right Transparent) --- */
                 ${isHovered 
-                    /* from-black: Solid black on the left
-                       via-black/90: Stays mostly dark through the middle (so text is readable)
-                       to-transparent: Fades out completely on the right edge
-                    */
                     ? 'w-64 bg-gradient-to-r from-black from-40% via-black/90 to-transparent backdrop-blur-sm' 
                     : 'w-20 bg-transparent'
                 } 
@@ -108,7 +106,8 @@ const Sidebar = () => {
             <div className="relative z-10 px-2 mt-auto">
                 {user ? (
                     <button
-                        onClick={logout}
+                        // --- FIX: Use 'logoutUser' here ---
+                        onClick={logoutUser} 
                         className={`
                             relative flex items-center h-12 w-full mx-1 rounded-full transition-all duration-300 group
                             text-red-400 hover:text-red-300 hover:bg-red-500/10

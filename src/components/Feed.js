@@ -1,132 +1,124 @@
 // src/components/Feed.js
-import React, { useEffect } from 'react';
-import { databases, functions } from '../appwriteConfig';
-import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
+import React, { useState, useEffect } from 'react';
+import { databases, DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { useInView } from 'react-intersection-observer';
 import VideoCard from './VideoCard';
+import AdBanner from './AdBanner'; // <--- Import AdBanner
+import { useInView } from 'react-intersection-observer';
 
-const VIDEOS_PER_PAGE = 12;
+const Feed = () => {
+    const [videos, setVideos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [lastId, setLastId] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const ITEMS_PER_PAGE = 12;
 
-const fetchVideos = async ({ pageParam = 0, queryKey }) => {
-    const [, searchTerm, category] = queryKey;
-    let queries = [];
-    
-    // --- (FIX) Always filter for approved videos ---
-    queries.push(Query.equal('adminStatus', 'approved'));
+    const { ref, inView } = useInView({ threshold: 0.5 });
 
-    let videoIds = null;
-
-    if (searchTerm) {
+    const fetchVideos = async (isLoadMore = false) => {
+        if (isLoadMore) setLoading(false); // Don't show full spinner for load more
+        
         try {
-             // NOTE: Make sure this Function ID is correct for your project!
-            const searchPayload = JSON.stringify({ searchQuery: searchTerm });
-            const result = await functions.createExecution('690f37f2b6b6f9854983', searchPayload);
-            const responseData = JSON.parse(result.response);
-            videoIds = responseData.videoIds;
+            let queries = [
+                Query.orderDesc('$createdAt'),
+                Query.limit(ITEMS_PER_PAGE),
+                // Exclude Shorts/Music from main feed if you want
+                Query.notEqual('category', 'shorts') 
+            ];
 
-            if (!videoIds || videoIds.length === 0) return [];
-            queries.push(Query.equal('$id', videoIds));
-        } catch (e) {
-            console.error("Search function failed:", e);
-            return [];
-        }
-    } else {
-        queries.push(Query.orderDesc('$createdAt'));
-        if (category) {
-            queries.push(Query.equal('category', category));
-        }
-    }
-
-    queries.push(Query.limit(VIDEOS_PER_PAGE));
-    queries.push(Query.offset(pageParam));
-
-    const response = await databases.listDocuments(DATABASE_ID, COLLECTION_ID_VIDEOS, queries);
-
-    if (searchTerm && videoIds) {
-        response.documents.sort((a, b) => videoIds.indexOf(a.$id) - videoIds.indexOf(b.$id));
-    }
-
-    return response.documents;
-};
-
-const Feed = ({ searchTerm, category }) => {
-    const { ref, inView } = useInView();
-
-    const {
-        data,
-        error,
-        fetchNextPage,
-        hasNextPage,
-        isFetching,
-        isFetchingNextPage,
-        status,
-    } = useInfiniteQuery({
-        queryKey: ['videos', searchTerm, category],
-        queryFn: fetchVideos,
-        getNextPageParam: (lastPage, allPages) => {
-            if (lastPage.length === VIDEOS_PER_PAGE) {
-                return allPages.length * VIDEOS_PER_PAGE;
+            if (isLoadMore && lastId) {
+                queries.push(Query.cursorAfter(lastId));
             }
-            return undefined;
-        },
-    });
+
+            const response = await databases.listDocuments(
+                DATABASE_ID, 
+                COLLECTION_ID_VIDEOS, 
+                queries
+            );
+
+            if (isLoadMore) {
+                setVideos(prev => [...prev, ...response.documents]);
+            } else {
+                setVideos(response.documents);
+            }
+
+            if (response.documents.length < ITEMS_PER_PAGE) {
+                setHasMore(false);
+            }
+            
+            if (response.documents.length > 0) {
+                setLastId(response.documents[response.documents.length - 1].$id);
+            }
+
+        } catch (error) {
+            console.error("Failed to fetch feed:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        if (inView && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
+        fetchVideos(false);
+    }, []);
+
+    useEffect(() => {
+        if (inView && hasMore) {
+            fetchVideos(true);
         }
-    }, [inView, hasNextPage, fetchNextPage, isFetchingNextPage]);
+    }, [inView, hasMore]);
 
-    if (status === 'loading') {
-        return (
-             <div className="flex justify-center items-center h-64">
-                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-             </div>
-        );
-    }
+    // --- AD INJECTION LOGIC ---
+    // This helper mixes ads into the video list
+    const renderContentWithAds = () => {
+        const items = [];
+        videos.forEach((video, index) => {
+            items.push(
+                <div key={video.$id} className="w-full">
+                    <VideoCard video={video} />
+                </div>
+            );
 
-    if (status === 'error') {
+            // Insert an Ad after every 6 videos
+            if ((index + 1) % 6 === 0) {
+                items.push(
+                    <div key={`ad-${index}`} className="col-span-full">
+                        <AdBanner slotId="8358319749" />
+                    </div>
+                );
+            }
+        });
+        return items;
+    };
+
+    if (loading && videos.length === 0) {
         return (
-            <div className="glass-panel p-6 text-center text-red-500">
-                Error: {error.message}
+            <div className="flex justify-center py-20">
+                <div className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full"></div>
             </div>
         );
     }
-
-    const allVideos = data ? data.pages.flat() : [];
 
     return (
-        <>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {allVideos.length === 0 && !isFetching && (
-                    <div className="glass-panel col-span-full py-8 text-center text-lg text-gray-600 dark:text-gray-200">
-                        {searchTerm ? `No results for "${searchTerm}"` : "No videos yet."}
-                    </div>
-                )}
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            {/* Top Ad Banner (Optional) */}
+            <AdBanner className="mb-8" slotId="YOUR_TOP_BANNER_SLOT_ID" />
 
-                {data && data.pages.map((page, i) => (
-                    <React.Fragment key={i}>
-                        {page.map(video => <VideoCard key={video.$id} video={video} />)}
-                    </React.Fragment>
-                ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {renderContentWithAds()}
             </div>
 
-            {/* Infinite Scroll Trigger & Feedback Area */}
-            <div ref={ref} className="col-span-full py-6 text-center flex justify-center">
-                {isFetchingNextPage ? (
-                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                         <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                         <span>Loading more...</span>
-                     </div>
-                ) : hasNextPage ? (
-                    <div className="h-10 w-full" />
-                ) : allVideos.length > 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400">You've reached the end.</p>
-                ) : null}
-            </div>
-        </>
+            {hasMore && (
+                <div ref={ref} className="flex justify-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                </div>
+            )}
+            
+            {!hasMore && videos.length > 0 && (
+                <div className="text-center py-10 text-gray-500">
+                    You've reached the end!
+                </div>
+            )}
+        </div>
     );
 };
 

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Child Safety Standards - OFG Connects</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .bg-grid {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen selection:bg-blue-500 selection:text-white relative">
+
+    <div class="fixed inset-0 z-0 bg-grid pointer-events-none"></div>
+    <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-6 py-16 md:py-24">
+        
+        <header class="mb-12 text-center">
+            <a href="/" class="inline-block mb-6 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+                &larr; Back to Home
+            </a>
+            <h1 class="text-3xl md:text-5xl font-display font-bold text-white mb-4">
+                Child Safety Standards
+            </h1>
+            <div class="h-1 w-24 bg-blue-500 mx-auto rounded-full"></div>
+        </header>
+
+        <div class="glass-panel rounded-2xl p-8 md:p-12 shadow-2xl">
+            <div class="prose prose-invert max-w-none text-gray-300">
+                
+                <h3 class="text-xl font-semibold text-white mb-4 mt-0">1. Zero Tolerance Policy</h3>
+                <p class="mb-8 leading-relaxed">
+                    OFG Connects has a <strong>zero-tolerance policy</strong> regarding Child Sexual Abuse Material (CSAM) and the exploitation of children. We strictly prohibit the upload, sharing, or distribution of any content that depicts, promotes, or normalizes child sexual abuse or exploitation.
+                </p>
+
+                <h3 class="text-xl font-semibold text-white mb-4">2. Detection and Removal</h3>
+                <p class="mb-8 leading-relaxed">
+                    We employ a combination of user reporting and moderation tools to identify and remove illegal content. Any content identified as CSAM is immediately removed from our platform and the associated accounts are permanently banned.
+                </p>
+
+                <h3 class="text-xl font-semibold text-white mb-4">3. Reporting to Authorities</h3>
+                <p class="mb-8 leading-relaxed">
+                    In compliance with U.S. law (18 U.S.C. § 2258A) and international standards, OFG Connects will report any suspected instances of CSAM to the <strong>National Center for Missing & Exploited Children (NCMEC) CyberTipline</strong>. We also cooperate fully with law enforcement agencies in investigating and prosecuting offenders.
+                </p>
+
+                <h3 class="text-xl font-semibold text-white mb-4">4. In-App Reporting</h3>
+                <p class="mb-8 leading-relaxed">
+                    Users are encouraged to report any content they believe violates this policy using the in-app "Report" feature or by contacting us directly. All reports regarding child safety are prioritized for immediate review.
+                </p>
+
+                <div class="mt-12 pt-8 border-t border-gray-800">
+                    <h4 class="text-lg font-medium text-white mb-2">Contact for Safety Concerns</h4>
+                    <p class="text-gray-400">
+                        Email: <a href="mailto:ofgtechhub@gmail.com" class="text-blue-400 hover:text-blue-300 transition-colors">ofgtechhub@gmail.com</a>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-gray-600 text-sm">
+            &copy; <span id="year"></span> OFG Connects. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
