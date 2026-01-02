@@ -1,9 +1,10 @@
+// src/pages/ShortsPage.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { databases, account } from '../appwriteConfig';
 import { DATABASE_ID, COLLECTION_ID_VIDEOS } from '../appwriteConfig';
 import { Query } from 'appwrite';
-import { FaComment, FaShare, FaExclamationCircle } from 'react-icons/fa'; // Removed FaHeart
+import { FaComment, FaShare, FaExclamationCircle } from 'react-icons/fa'; 
 import './ShortsPage.css';
 
 const ShortsPage = () => {
@@ -41,11 +42,15 @@ const ShortsPage = () => {
                     } catch (e) { console.warn("Video not found"); }
                 }
 
-                // Fetch feed
+                // --- FIX APPLIED HERE: Filter by category 'shorts' ---
                 const response = await databases.listDocuments(
                     DATABASE_ID,
                     COLLECTION_ID_VIDEOS,
-                    [Query.limit(10), Query.orderDesc('$createdAt')]
+                    [
+                        Query.equal('category', 'shorts'), // <--- ONLY SHOW SHORTS
+                        Query.limit(10), 
+                        Query.orderDesc('$createdAt')
+                    ]
                 );
 
                 const newVideos = response.documents.filter(doc => doc.$id !== id);
@@ -77,7 +82,7 @@ const ShortsPage = () => {
     );
 };
 
-// --- Sub-Component (Like Button Removed) ---
+// --- Sub-Component ---
 const SingleShort = ({ video, currentUserId, navigate }) => {
     const videoRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -174,8 +179,6 @@ const SingleShort = ({ video, currentUserId, navigate }) => {
                     </div>
                     
                     <div className="short-actions">
-                        {/* Like Button REMOVED here */}
-
                         {/* Comment Button */}
                         <button className="action-btn" onClick={handleComment}>
                             <FaComment /> 

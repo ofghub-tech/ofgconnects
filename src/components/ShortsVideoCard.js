@@ -164,7 +164,8 @@ const ShortsVideoCard = ({ video, isActive, hasUserInteracted }) => {
                     <span className="text-xs font-medium text-white drop-shadow-md">0</span>
                 </div>
 
-                <ShareButton />
+                {/* --- FIX: Passed required props here --- */}
+                <ShareButton videoId={video.$id} videoTitle={video.title} />
             </div>
 
             {/* --- BOTTOM INFO --- */}

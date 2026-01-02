@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 
 const AdBanner = ({ 
-    slotId = "1234567890", // Replace with your default Ad Slot ID
+    slotId = "8358319749", // Replace with your default Ad Slot ID
     format = "auto", 
     className = "" 
 }) => {

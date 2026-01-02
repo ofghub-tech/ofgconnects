@@ -5,10 +5,10 @@ import { databases } from '../appwriteConfig';
 import { 
     DATABASE_ID, 
     COLLECTION_ID_VIDEOS, 
-    COLLECTION_ID_HISTORY // <--- Imported
+    COLLECTION_ID_HISTORY 
 } from '../appwriteConfig';
-import { Query, ID, Permission, Role } from 'appwrite'; // <--- Imported for history logic
-import { useAuth } from '../context/AuthContext'; // <--- Imported to identify user
+import { Query, ID, Permission, Role } from 'appwrite'; 
+import { useAuth } from '../context/AuthContext'; 
 
 import SuggestedVideos from '../components/SuggestedVideos';
 import Comments from '../components/Comments';
@@ -20,7 +20,7 @@ import Avatar from '../components/Avatar';
 
 const WatchPage = () => {
     const { id } = useParams();
-    const { user } = useAuth(); // <--- Get current user
+    const { user } = useAuth(); 
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -43,7 +43,7 @@ const WatchPage = () => {
                 );
                 setVideo(response);
                 
-                // --- FIXED VIEW COUNT LOGIC ---
+                // --- VIEW COUNT LOGIC ---
                 // Only attempt to count if user is logged in
                 if (user && !viewCountedRef.current) {
                     viewCountedRef.current = true; // Mark as checked for this session
@@ -106,7 +106,7 @@ const WatchPage = () => {
         if (id) {
             fetchVideo();
         }
-    }, [id, user]); // Added user to dependency array
+    }, [id, user]); 
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen bg-black">
@@ -121,7 +121,6 @@ const WatchPage = () => {
         </div>
     );
 
-    // MAPPING: Use 'video_url'
     const videoSource = video.video_url || video.videoUrl;
     const thumbnailSource = video.thumbnailUrl || video.thumbnail_url;
 
@@ -181,7 +180,8 @@ const WatchPage = () => {
                             {/* Actions */}
                             <div className="flex items-center gap-2 justify-end">
                                 <LikeButton videoId={video.$id} initialLikes={video.likes || []} />
-                                <ShareButton />
+                                {/* --- FIX: Passed required props here --- */}
+                                <ShareButton videoId={video.$id} videoTitle={video.title} />
                             </div>
                         </div>
 
@@ -200,7 +200,7 @@ const WatchPage = () => {
                 {/* Right Side: Suggested Videos & Ads */}
                 <div className="lg:w-1/4 px-4 sm:px-0">
                     <AdBanner 
-                        slotId="5592018392" 
+                        slotId="8358319749" 
                         className="mb-6 hidden lg:flex" 
                     />
                     <h3 className="text-lg font-bold mb-4 hidden lg:block">Up Next</h3>
