@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 // Note: Providers are now only in index.js to prevent duplication bugs
@@ -9,7 +9,7 @@ import Sidebar from './components/Sidebar';
 import BibleWidget from './components/BibleFeature/BibleWidget';
 
 // --- NEW IMPORT: Upload Component ---
-import UploadForm from './components/UploadForm'; // <--- ADDED THIS
+import UploadForm from './components/UploadForm'; 
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -35,16 +35,26 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+    // State to toggle sidebar on mobile
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     return (
         <Router>
             <div className="min-h-screen bg-black text-gray-100 font-sans selection:bg-blue-500/30">
                 
                 {/* --- FIXED ELEMENTS --- */}
-                <Header />
-                <Sidebar />
+                {/* Pass toggle function to Header */}
+                <Header onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+                
+                {/* Pass state and close function to Sidebar */}
+                <Sidebar 
+                    isOpen={isMobileMenuOpen} 
+                    onClose={() => setIsMobileMenuOpen(false)} 
+                />
                 
                 {/* --- MAIN CONTENT WRAPPER --- */}
-                <main className="pt-24 pl-20 pr-4 sm:pl-24 lg:pr-8 min-h-screen transition-all duration-300">
+                {/* FIX: Removed pl-20 on mobile (default), added md:pl-20 for desktop */}
+                <main className="pt-24 px-4 md:pl-24 lg:pr-8 min-h-screen transition-all duration-300">
                     <Routes>
                         {/* Public Routes */}
                         <Route path="/login" element={<LoginPage />} />

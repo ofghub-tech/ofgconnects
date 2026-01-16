@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar'; 
 import { 
     MagnifyingGlassIcon, 
-    VideoCameraIcon 
+    VideoCameraIcon,
+    Bars3Icon // Import the Hamburger Icon
 } from '@heroicons/react/24/outline';
 
-const Header = ({ toggleSidebar }) => {
+const Header = ({ onMenuClick }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,8 +29,16 @@ const Header = ({ toggleSidebar }) => {
 
             <div className="relative z-10 flex items-center justify-between max-w-7xl mx-auto">
                 
-                {/* LEFT: Logo Area */}
+                {/* LEFT: Logo & Menu Area */}
                 <div className="flex items-center gap-4">
+                    {/* Hamburger Button - Visible only on Mobile (md:hidden) */}
+                    <button 
+                        onClick={onMenuClick}
+                        className="md:hidden p-2 -ml-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    >
+                        <Bars3Icon className="w-6 h-6" />
+                    </button>
+
                     {/* Logo placeholder if needed */}
                 </div>
 
@@ -49,7 +58,7 @@ const Header = ({ toggleSidebar }) => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Search videos, songs, or scripture..."
+                                placeholder="Search..."
                                 className="w-full bg-transparent border-none focus:ring-0 text-gray-100 placeholder-gray-400 py-2.5 px-3"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -59,7 +68,7 @@ const Header = ({ toggleSidebar }) => {
                             <button 
                                 type="submit"
                                 className={`
-                                    px-4 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors border-l border-white/5
+                                    hidden sm:block px-4 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors border-l border-white/5
                                     ${searchTerm ? 'opacity-100' : 'opacity-0 sm:opacity-100'}
                                 `}
                             >
@@ -78,9 +87,6 @@ const Header = ({ toggleSidebar }) => {
                         className="p-2 text-gray-300 rounded-full hover:bg-white/10 hover:text-white transition-all duration-200 group relative"
                     >
                         <VideoCameraIcon className="w-6 h-6" />
-                        <span className="absolute top-full right-0 mt-2 text-xs bg-black/80 px-2 py-1 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            Create
-                        </span>
                     </button>
 
                     {/* Profile Avatar */}
