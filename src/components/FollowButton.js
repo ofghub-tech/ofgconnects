@@ -9,7 +9,6 @@ import {
 import { ID, Permission, Role, Query } from 'appwrite';
 
 const FollowButton = ({ creatorId, creatorName }) => {
-    // --- (LOGIC UNCHANGED) ---
     const { user } = useAuth();
     const [isFollowing, setIsFollowing] = useState(false);
     const [subscriptionId, setSubscriptionId] = useState(null);
@@ -17,6 +16,7 @@ const FollowButton = ({ creatorId, creatorName }) => {
 
     useEffect(() => {
         const checkSubscription = async () => {
+            // Safety Check: If we don't have a creatorId, we can't check anything.
             if (!user || !creatorId || user.$id === creatorId) {
                 setIsLoading(false);
                 return;
@@ -53,12 +53,26 @@ const FollowButton = ({ creatorId, creatorName }) => {
              alert("Please log in to follow creators.");
              return;
         }
+
+        // 1. CRITICAL CHECK: Ensure we actually have an ID to follow
+        if (!creatorId) {
+            console.error("Error: creatorId (followingId) is missing!");
+            alert("Cannot follow: User ID is missing.");
+            return;
+        }
+
+        const validUsername = creatorName || "Unknown User";
+
         try {
+            // 2. PAYLOAD: Explicitly mapping creatorId to followingId
             const payload = {
-                followerId: user.$id,
-                followingId: creatorId,
-                followingUsername: creatorName 
+                followerId: user.$id,     // My ID
+                followingId: creatorId,   // The ID of the person I'm following
+                followingUsername: validUsername
             };
+            
+            console.log("Sending Follow Payload:", payload); // Debugging: Check console to see IDs
+
             const response = await databases.createDocument(
                 DATABASE_ID,
                 COLLECTION_ID_SUBSCRIPTIONS,
@@ -95,10 +109,7 @@ const FollowButton = ({ creatorId, creatorName }) => {
             alert(`Error on Unfollow: ${error.message}`);
         }
     };
-    // --- (END LOGIC) ---
 
-    // --- (FIX) Replaced solid styles with glass panel styles ---
-    // We use the same styles from our .glass-panel class, but keep rounded-full
     const followButtonClasses = `
         flex items-center justify-center
         py-2 px-4 h-9 rounded-full 
@@ -108,13 +119,12 @@ const FollowButton = ({ creatorId, creatorName }) => {
         shadow-lg backdrop-blur-2xl border
         hover:scale-105
         ${isFollowing 
-            // Following state (Subdued, dark glass)
             ? 'bg-gray-600/30 border-white/10 text-white' 
-            // Default state (Prominent, bright glass - for dark mode)
             : 'bg-white/90 border-white/20 text-black'
         }
     `;
 
+    // Hide button if loading, no user, self-follow, OR if creatorId is missing
     if (isLoading || !user || user.$id === creatorId) {
         return null; 
     }
@@ -123,7 +133,8 @@ const FollowButton = ({ creatorId, creatorName }) => {
         <button 
             className={followButtonClasses}
             onClick={isFollowing ? handleUnfollow : handleFollow}
-            disabled={!user || isLoading}
+            // Disable button if creatorId is missing so you can't click it
+            disabled={!user || isLoading || !creatorId}
         >
             {isFollowing ? 'Following' : 'Follow'}
         </button>

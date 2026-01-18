@@ -174,13 +174,16 @@ const WatchPage = () => {
                                         {video.creatorId === video.userId ? 'Owner' : ''}
                                     </p>
                                 </div>
-                                <FollowButton targetUserId={video.userId} />
+                                {/* --- FIX: Replaced targetUserId with creatorId & creatorName --- */}
+                                <FollowButton 
+                                    creatorId={video.userId} 
+                                    creatorName={video.username} 
+                                />
                             </div>
 
                             {/* Actions */}
                             <div className="flex items-center gap-2 justify-end">
                                 <LikeButton videoId={video.$id} initialLikes={video.likes || []} />
-                                {/* --- FIX: Passed required props here --- */}
                                 <ShareButton videoId={video.$id} videoTitle={video.title} />
                             </div>
                         </div>
