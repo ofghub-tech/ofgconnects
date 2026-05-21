@@ -1,0 +1,26 @@
+/* Container */
+.kids-container {
+    padding: 20px;
+    min-height: 100vh;
+}
+
+/* Title */
+.kids-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #111;
+    margin-bottom: 20px;
+}
+
+/* Responsive spacing */
+@media (min-width: 640px) {
+    .kids-container {
+        padding: 24px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .kids-container {
+        padding: 32px;
+    }
+}

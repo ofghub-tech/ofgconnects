@@ -1,0 +1,151 @@
+/* HomePage.css - Premium Dark Glassmorphism */
+
+:root {
+  /* Deep Night Palette */
+  --bg-deep: #030712; 
+  --bg-surface: #0f172a;
+  --accent-primary: #6366f1;
+  --accent-secondary: #ec4899;
+  
+  /* Glass Effects */
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.12);
+  
+  /* Text */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  
+  /* Motion */
+  --bezier: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-container {
+  padding: 60px 24px;
+  min-height: 100vh;
+  background-color: var(--bg-deep);
+  /* Sophisticated ambient glow */
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.home-content {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* --- Header --- */
+.header {
+  margin-bottom: 64px;
+  text-align: left;
+}
+
+.title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  background: linear-gradient(to right, #fff 20%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- The Grid --- */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* --- Premium Video Card --- */
+.video-grid > * {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 12px; /* Inner padding for "floating" image look */
+  transition: all 0.5s var(--bezier);
+  position: relative;
+  overflow: hidden;
+}
+
+.video-grid > *:hover {
+  transform: translateY(-10px) scale(1.02);
+  border-color: var(--accent-primary);
+  background: var(--glass-hover);
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5),
+              0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+/* Subtle Shimmer Effect */
+.video-grid > *::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.video-grid > *:hover::before {
+  opacity: 1;
+}
+
+/* --- Loaders --- */
+.loader-container {
+  display: flex;
+  justify-content: center;
+  margin: 100px 0;
+}
+
+.loader.large {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s var(--bezier) infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Load More --- */
+.load-more {
+  margin-top: 80px;
+  display: flex;
+  justify-content: center;
+}
+
+.load-more-inner {
+  background: white;
+  color: black;
+  padding: 14px 32px;
+  border-radius: 100px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s var(--bezier);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.load-more-inner:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .title { font-size: 2.5rem; }
+  .video-grid { grid-template-columns: 1fr; }
+}
