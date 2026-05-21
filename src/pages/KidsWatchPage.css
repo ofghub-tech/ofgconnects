@@ -1,0 +1,77 @@
+.page {
+    padding: 20px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.main {}
+.sidebar {}
+
+.video-box {
+    background: black;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.video-box video {
+    width: 100%;
+    height: 100%;
+}
+
+.panel {
+    background: rgba(255,255,255,0.6);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.views {
+    display: flex;
+    gap: 6px;
+    color: #555;
+}
+
+.creator-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.creator {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.save-btn {
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: #eee;
+    border: none;
+    cursor: pointer;
+}
+
+.description {
+    margin-top: 15px;
+}
+
+.center-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
+}

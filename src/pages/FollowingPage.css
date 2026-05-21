@@ -1,0 +1,114 @@
+/* Container */
+.following-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Grid Layout */
+.following-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .following-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: none;
+    }
+}
+
+/* Title */
+.page-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #111;
+}
+
+/* Loading */
+.loading-text {
+    color: #666;
+}
+
+/* List */
+.following-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Card */
+.user-card {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+}
+
+/* Avatar */
+.avatar {
+    height: 48px;
+    width: 48px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* User Info */
+.user-info {
+    margin-left: 15px;
+}
+
+.username {
+    display: block;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111;
+}
+
+.description {
+    font-size: 14px;
+    color: #777;
+}
+
+/* Sidebar */
+.sidebar {
+    display: block;
+}
+
+.banner {
+    height: 100%;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+}
+
+/* Empty State */
+.empty-state {
+    padding: 30px;
+    text-align: center;
+    color: #666;
+}
+
+/* Glass Panel Effect */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}

@@ -69,6 +69,7 @@ const ShortsPage = () => {
     if (loading) return <div className="loading-container">Loading Shorts...</div>;
 
     return (
+        <div className="shorts-page">
         <div className="shorts-container">
             {videos.map((video) => (
                 <SingleShort 
@@ -78,6 +79,7 @@ const ShortsPage = () => {
                     navigate={navigate}
                 />
             ))}
+        </div>
         </div>
     );
 };

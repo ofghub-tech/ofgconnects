@@ -1,0 +1,25 @@
+.songs-page {
+    padding: 20px;
+    min-height: 100vh;
+}
+
+/* Responsive spacing (same as original Tailwind behavior) */
+@media (min-width: 640px) {
+    .songs-page {
+        padding: 24px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .songs-page {
+        padding: 32px;
+    }
+}
+
+/* Title */
+.songs-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #111;
+    margin-bottom: 20px;
+}
